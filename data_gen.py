@@ -301,21 +301,27 @@ def generate_data(num_particles, num_dims, num_trials, method, xp, device=None):
         # borns = xp.real(xp.sum(rho_start0 * xp.conj(general_basis_xp), axis=(1, 2)))
         
         # 3. Simulate Noise (Generated on CPU, mapped to Device)
+        borns = xp.real(xp.sum(rho_start0 * xp.conj(general_basis_xp), axis=(1, 2)))
+        print(f"Borns: {xp.sum(borns)}")
+        
+        # 3. Simulate Noise
         noise_np = norm.rvs(size=num_dims**(2*num_particles)) / 8  
         noise_xp = xp.asarray(noise_np, dtype=f_dtype, device=device)
-        borns_approx =  [ el1 + el2 for el1, el2 in zip(borns, noise_xp) ] 
-        # borns_approx = borns + noise_xp
+        borns_approx = xp.asarray(borns + noise_xp, dtype=f_dtype, device=device)
         
-        # 4. Vectorized Linear Inversion (Replaces the slow Python sum loop)
+        # 4. Vectorized Linear Inversion
         borns_bcast = xp.expand_dims(xp.expand_dims(borns_approx, axis=1), axis=2)
         rback = xp.sum(borns_bcast * reconstruction_basis, axis=0)
+
+        # 5. Eigendecomposition and Matrix Extraction
+        cleanRho = eigenvaluesCheck(rback, xp)
 
         # 4. Maximum Likelihood Estimation (Replaces Linear Inversion)
         # cleanRho, T_opt = mle_reconstruction(borns_approx, general_basis_xp, xp, lr=0.01, iters=300)
         # cleanRho = mle_reconstruction(borns_approx, general_basis_xp, xp, lr=0.1, iters=150)
         
         # 5. Eigendecomposition and Matrix Extraction
-        cleanRho = eigenvaluesCheck(rback, xp)
+        # cleanRho = eigenvaluesCheck(rback, xp)
 
 
         try:
@@ -330,10 +336,10 @@ def generate_data(num_particles, num_dims, num_trials, method, xp, device=None):
             linear_inversion_fids.append(float(fid)) 
             
             # 7. Ideal Cholesky target
-            # chol_theoretic = vectorization_new(PureEigenvaluesCheck(rho_start0, xp), xp)
+            chol_theoretic = vectorization_new(PureEigenvaluesCheck(rho_start0, xp), xp)
 
             # 7. Extract theoretical parameter using safe 64-bit CPU offloading
-            chol_theoretic = get_theoretical_cholesky(rho_start0, xp)
+            # chol_theoretic = get_theoretical_cholesky(rho_start0, xp)
 
             # Bring tensor back to CPU numpy for safe saving/pandas integration
             combined = xp.concat([chol_exp, chol_theoretic])
