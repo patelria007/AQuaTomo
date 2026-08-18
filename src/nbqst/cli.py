@@ -33,16 +33,27 @@ def _generate(args):
     xp = _backend(args.backend)
     rng = np.random.default_rng(args.seed)
     generator = STATE_GENERATORS[args.state_type]
+    readout_options = {}
+    if args.readout_fidelity_0 is not None:
+        readout_options = {
+            "readout_fidelity_0": args.readout_fidelity_0,
+            "readout_fidelity_1": args.readout_fidelity_1,
+        }
     states, datasets = [], []
     for _ in range(args.samples):
         state = generator(args.qubits, xp=xp, rng=rng)
         states.append(state)
-        datasets.append(simulate_pauli_measurements(state, args.shots, rng=rng))
+        datasets.append(simulate_pauli_measurements(state, args.shots, rng=rng, **readout_options))
     save_measurement_bundle(
         args.output,
         states,
         datasets,
-        {"backend": args.backend, "state_type": args.state_type, "seed": args.seed},
+        {
+            "backend": args.backend,
+            "state_type": args.state_type,
+            "seed": args.seed,
+            **readout_options,
+        },
     )
     print(f"Saved {args.samples} states and measurement data to {args.output}")
 
@@ -87,6 +98,8 @@ def build_parser():
     generate.add_argument("--state-type", choices=tuple(STATE_GENERATORS), default="haar")
     generate.add_argument("--backend", choices=("numpy", "cupy", "jax"), default="numpy")
     generate.add_argument("--seed", type=int, default=7)
+    generate.add_argument("--readout-fidelity-0", type=float, nargs="+")
+    generate.add_argument("--readout-fidelity-1", type=float, nargs="+")
     generate.add_argument("--output", default="data/tomography_data.npz")
     generate.set_defaults(func=_generate)
 
@@ -112,7 +125,12 @@ def build_parser():
 
 
 def main(argv=None):
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "generate" and (
+        (args.readout_fidelity_0 is None) != (args.readout_fidelity_1 is None)
+    ):
+        parser.error("--readout-fidelity-0 and --readout-fidelity-1 must be provided together")
     args.func(args)
 
 

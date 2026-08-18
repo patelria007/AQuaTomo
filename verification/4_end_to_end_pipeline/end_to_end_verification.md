@@ -79,6 +79,26 @@ physical MLE reconstruction. Each row uses one shared magnitude scale across
 all three density matrices, so target-to-estimate agreement can be compared
 directly.
 
+To generate the matching gallery with uniform asymmetric-model parameters
+$F_0=F_1=0.97$, run:
+
+```powershell
+python verification\4_end_to_end_pipeline\state_matrix_gallery_readout_97.py
+```
+
+This creates the separate figure `state_matrix_gallery_readout_97.png`. The
+reconstruction remains uncorrected, so the figure exposes the effect of the
+readout error on raw linear inversion and physical MLE.
+
+For the asymmetric calibration $P(g|g)=1.00$ and $P(e|e)=0.94$, run:
+
+```powershell
+python verification\4_end_to_end_pipeline\state_matrix_gallery_readout_g100_e94.py
+```
+
+This creates `state_matrix_gallery_readout_g100_e94.png` while retaining the
+same target states, random seed, shot count, and reconstruction settings.
+
 The default seed is fixed, and target-state RNG streams are separated from
 measurement RNG streams. Changing the measurement loop order therefore does
 not silently redefine the generated target states.

@@ -103,6 +103,9 @@ def build_gallery_data(
     shots: int,
     seed: int,
     mle_iterations: int,
+    *,
+    readout_fidelity_0: float | None = None,
+    readout_fidelity_1: float | None = None,
 ) -> list[dict[str, object]]:
     if shots < 1:
         raise ValueError("shots must be positive")
@@ -116,6 +119,8 @@ def build_gallery_data(
             target,
             shots,
             rng=measurement_rng(seed, state_index),
+            readout_fidelity_0=readout_fidelity_0,
+            readout_fidelity_1=readout_fidelity_1,
         )
         measured = np.asarray(linear_inversion_pauli(measurements))
         initial = np.asarray(project_density_matrix(measured))
@@ -167,6 +172,8 @@ def plot_gallery(
     shots: int,
     *,
     show: bool = False,
+    readout_fidelity_0: float | None = None,
+    readout_fidelity_1: float | None = None,
 ) -> None:
     figure = plt.figure(figsize=(19.5, 16.5), layout="constrained")
     grid = figure.add_gridspec(
@@ -174,11 +181,17 @@ def plot_gallery(
         6,
         width_ratios=(1.0, 1.0, 0.04, 1.0, 1.0, 0.04),
     )
+    readout_label = (
+        ""
+        if readout_fidelity_0 is None and readout_fidelity_1 is None
+        else (
+            f", P(g|g)={100.0 * readout_fidelity_0:.1f}%, "
+            f"P(e|e)={100.0 * readout_fidelity_1:.1f}%"
+        )
+    )
     figure.suptitle(
-        (
-            "Four-qubit tomography: generated, measured, and reconstructed "
-            f"matrices ({shots:,} shots/setting)"
-        ),
+        "Four-qubit tomography: generated, measured, and reconstructed "
+        f"matrices\n({shots:,} shots/setting{readout_label})",
         fontsize=20,
     )
 
@@ -315,8 +328,22 @@ def plot_gallery(
     plt.close(figure)
 
 
-def print_report(rows: list[dict[str, object]], shots: int) -> None:
-    print(f"Four-qubit state-matrix gallery ({shots:,} shots/setting)")
+def print_report(
+    rows: list[dict[str, object]],
+    shots: int,
+    *,
+    readout_fidelity_0: float | None = None,
+    readout_fidelity_1: float | None = None,
+) -> None:
+    readout_label = (
+        ""
+        if readout_fidelity_0 is None and readout_fidelity_1 is None
+        else (
+            f", P(g|g)={100.0 * readout_fidelity_0:.1f}%, "
+            f"P(e|e)={100.0 * readout_fidelity_1:.1f}%"
+        )
+    )
+    print(f"Four-qubit state-matrix gallery ({shots:,} shots/setting{readout_label})")
     print("State                 raw HS error   raw min eig   MLE fidelity")
     for row in rows:
         print(

@@ -5,10 +5,12 @@ from pathlib import Path
 import numpy as np
 
 from nbqst.backend import scalar
+from nbqst.cli import main as cli_main
 from nbqst.denoise import depolarizing_shrinkage, low_rank_projection, project_density_matrix
 from nbqst.io import load_measurement_bundle, save_measurement_bundle
 from nbqst.measurements import (
     MeasurementData,
+    _apply_readout_fidelity,
     complete_pauli_settings,
     exact_pauli_measurements,
     global_pauli_settings,
@@ -46,6 +48,52 @@ class MeasurementTests(unittest.TestCase):
         data = simulate_pauli_measurements(rho, 123, rng=4)
         self.assertTrue(data.informationally_complete)
         self.assertTrue(all(int(np.sum(c)) == 123 for c in data.counts.values()))
+
+    def test_perfect_readout_preserves_seeded_counts(self):
+        rho = random_product_state(2, rng=1)
+        ideal = simulate_pauli_measurements(rho, 123, rng=4)
+        perfect = simulate_pauli_measurements(
+            rho, 123, rng=4, readout_fidelity_0=1.0, readout_fidelity_1=1.0
+        )
+        for setting in ideal.settings:
+            self.assertTrue(np.array_equal(ideal.counts[setting], perfect.counts[setting]))
+
+    def test_asymmetric_readout_probabilities(self):
+        self.assertTrue(
+            np.allclose(_apply_readout_fidelity([1.0, 0.0], 0.8, 0.9), [0.8, 0.2])
+        )
+        self.assertTrue(
+            np.allclose(_apply_readout_fidelity([0.0, 1.0], 0.8, 0.9), [0.1, 0.9])
+        )
+
+    def test_readout_big_endian_ordering(self):
+        observed = _apply_readout_fidelity(
+            [0.0, 0.0, 0.0, 1.0], [0.9, 0.8], [0.8, 0.6]
+        )
+        self.assertTrue(np.allclose(observed, [0.08, 0.12, 0.32, 0.48]))
+
+    def test_noisy_readout_conserves_shots(self):
+        rho = random_product_state(2, rng=1)
+        data = simulate_pauli_measurements(
+            rho,
+            123,
+            rng=4,
+            readout_fidelity_0=[0.98, 0.97],
+            readout_fidelity_1=[0.96, 0.95],
+        )
+        self.assertTrue(all(int(np.sum(c)) == 123 for c in data.counts.values()))
+
+    def test_invalid_readout_fidelity_rejected(self):
+        rho = random_product_state(2, rng=1)
+        invalid = (
+            {"readout_fidelity_0": 0.9},
+            {"readout_fidelity_0": [0.9, 0.9], "readout_fidelity_1": [0.8, 0.8, 0.8]},
+            {"readout_fidelity_0": [0.9, 1.1], "readout_fidelity_1": 0.9},
+            {"readout_fidelity_0": np.nan, "readout_fidelity_1": 0.9},
+        )
+        for options in invalid:
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                simulate_pauli_measurements(rho, 10, **options)
 
     def test_train_validation_split_conserves_counts(self):
         rho = random_product_state(2, rng=1)
@@ -111,6 +159,33 @@ class NoiseAndIOTests(unittest.TestCase):
         self.assertTrue(np.allclose(states[0], rho))
         self.assertEqual(metadata["purpose"], "test")
         self.assertEqual(datasets[0].shots_per_setting, 50)
+
+    def test_cli_readout_metadata_and_paired_options(self):
+        with self.assertRaises(SystemExit):
+            cli_main(["generate", "--readout-fidelity-0", "0.9"])
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "readout_bundle.npz"
+            cli_main(
+                [
+                    "generate",
+                    "--qubits",
+                    "1",
+                    "--samples",
+                    "1",
+                    "--shots",
+                    "10",
+                    "--readout-fidelity-0",
+                    "0.9",
+                    "--readout-fidelity-1",
+                    "0.8",
+                    "--output",
+                    str(path),
+                ]
+            )
+            _, _, metadata = load_measurement_bundle(path)
+        self.assertEqual(metadata["readout_fidelity_0"], [0.9])
+        self.assertEqual(metadata["readout_fidelity_1"], [0.8])
 
 
 if __name__ == "__main__":

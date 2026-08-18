@@ -12,7 +12,8 @@ metrics, persistence, and reproducible benchmarks.
   mixed, rank-controlled mixed, and GHZ states.
 - Noise: global and sequential local depolarizing channels.
 - Measurements: all `3**n` tensor-product Pauli settings with `2**n` outcomes
-  per setting and true multinomial shot counts.
+  per setting, true multinomial shot counts, and optional independent readout
+  errors.
 - Reconstruction: Pauli linear inversion and multinomial maximum likelihood
   with the physical factorization `rho = T^dagger T / trace(T^dagger T)`.
 - Training-free denoisers: exact Frobenius projection to the density-matrix
@@ -57,6 +58,19 @@ nbqst reconstruct data/haar2.npz --rank 1 \
 nbqst benchmark --qubits 1 2 3 --shots 100 500 2000 \
   --states 10 --output results/benchmark.csv
 ```
+
+To generate data with asymmetric per-qubit readout fidelity:
+
+```bash
+nbqst generate --qubits 2 --shots 1000 --samples 20 \
+  --readout-fidelity-0 0.98 0.97 --readout-fidelity-1 0.96 0.95 \
+  --output data/haar2_readout.npz
+```
+
+Here `readout-fidelity-0` is `P(measured 0 | true 0)` and
+`readout-fidelity-1` is `P(measured 1 | true 1)`. A single value is broadcast
+to every qubit. The confusion model is applied to Born probabilities before
+multinomial sampling; reconstruction remains intentionally uncorrected.
 
 To exercise an available accelerator without changing numerical code:
 
