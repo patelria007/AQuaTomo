@@ -1,0 +1,45 @@
+{
+  "study_seed": 20260818,
+  "timestamp_utc": "2026-08-18T11:15:39Z",
+  "hostname": "mb0040.local",
+  "operating_system": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "processor": "arm",
+  "logical_cpu_count_visible": 8,
+  "python": "3.12.9 | packaged by Anaconda, Inc. | (main, Feb  6 2025, 12:55:12) [Clang 14.0.6 ]",
+  "numpy": "1.26.4",
+  "thread_environment": {
+    "OMP_NUM_THREADS": "unset",
+    "MKL_NUM_THREADS": "unset",
+    "OPENBLAS_NUM_THREADS": "unset",
+    "VECLIB_MAXIMUM_THREADS": "unset",
+    "NUMEXPR_NUM_THREADS": "unset"
+  },
+  "job_environment": {
+    "SLURM_JOB_ID": "unset",
+    "SLURM_JOB_NAME": "unset",
+    "SLURM_NNODES": "unset",
+    "SLURM_NTASKS": "unset",
+    "SLURM_CPUS_PER_TASK": "unset",
+    "SLURM_GPUS": "unset",
+    "SLURM_GPUS_ON_NODE": "unset",
+    "CUDA_VISIBLE_DEVICES": "unset",
+    "JAX_PLATFORMS": "unset",
+    "XLA_FLAGS": "unset"
+  },
+  "backends": {
+    "numpy": true,
+    "jax": false,
+    "cupy": false
+  },
+  "blas_configuration": "Build Dependencies:\n  blas:\n    detection method: pkgconfig\n    found: true\n    include directory: /opt/anaconda3/include\n    lib directory: /opt/anaconda3/lib\n    name: openblas\n    openblas configuration: USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS=\n      NO_LAPACK=0 NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP=0 VORTEX MAX_THREADS=128\n    pc file directory: /opt/anaconda3/lib/pkgconfig\n    version: 0.3.21\n  lapack:\n    detection method: internal\n    found: true\n    include directory: unknown\n    lib directory: unknown\n    name: dep4347739648\n    openblas configuration: unknown\n    pc file directory: unknown\n    version: 1.26.4\nCompilers:\n  c:\n    args: -ftree-vectorize, -fPIC, -fPIE, -fstack-protector-strong, -O2, -pipe, -isystem,\n      /opt/anaconda3/include, -fdebug-prefix-map=/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_a51i_mbs7m/croot/numpy_and_numpy_base_1708638620867/work=/usr/local/src/conda/numpy-base-1.26.4,\n      -fdebug-prefix-map=/opt/anaconda3=/usr/local/src/conda-prefix, -D_FORTIFY_SOURCE=2,\n      -isystem, /opt/anaconda3/include, -mmacosx-version-min=11.1\n    commands: arm64-apple-darwin20.0.0-clang\n    linker: ld64\n    linker args: -Wl,-pie, -Wl,-headerpad_max_install_names, -Wl,-dead_strip_dylibs,\n      -Wl,-rpath,/opt/anaconda3/lib, -L/opt/anaconda3/lib, -ftree-vectorize, -fPIC,\n      -fPIE, -fstack-protector-strong, -O2, -pipe, -isystem, /opt/anaconda3/include,\n      -fdebug-prefix-map=/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_a51i_mbs7m/croot/numpy_and_numpy_base_1708638620867/work=/usr/local/src/conda/numpy-base-1.26.4,\n      -fdebug-prefix-map=/opt/anaconda3=/usr/local/src/conda-prefix, -D_FORTIFY_SOURCE=2,\n      -isystem, /opt/anaconda3/include, -mmacosx-version-min=11.1\n    name: clang\n    version: 14.0.6\n  c++:\n    args: -ftree-vectorize, -fPIC, -fPIE, -fstack-protector-strong, -O2, -pipe, -stdlib=libc++,\n      -fvisibility-inlines-hidden, -fmessage-length=0, -isystem, /opt/anaconda3/include,\n      -fdebug-prefix-map=/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_a51i_mbs7m/croot/numpy_and_numpy_base_1708638620867/work=/usr/local/src/conda/numpy-base-1.26.4,\n      -fdebug-prefix-map=/opt/anaconda3=/usr/local/src/conda-prefix, -D_FORTIFY_SOURCE=2,\n      -isystem, /opt/anaconda3/include, -mmacosx-version-min=11.1\n    commands: arm64-apple-darwin20.0.0-clang++\n    linker: ld64\n    linker args: -Wl,-pie, -Wl,-headerpad_max_install_names, -Wl,-dead_strip_dylibs,\n      -Wl,-rpath,/opt/anaconda3/lib, -L/opt/anaconda3/lib, -ftree-vectorize, -fPIC,\n      -fPIE, -fstack-protector-strong, -O2, -pipe, -stdlib=libc++, -fvisibility-inlines-hidden,\n      -fmessage-length=0, -isystem, /opt/anaconda3/include, -fdebug-prefix-map=/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_a51i_mbs7m/croot/numpy_and_numpy_base_1708638620867/work=/usr/local/src/conda/numpy-base-1.26.4,\n      -fdebug-prefix-map=/opt/anaconda3=/usr/local/src/conda-prefix, -D_FORTIFY_SOURCE=2,\n      -isystem, /opt/anaconda3/include, -mmacosx-version-min=11.1\n    name: clang\n    version: 14.0.6\n  cython:\n    commands: cython\n    linker: cython\n    name: cython\n    version: 3.0.8\nMachine Information:\n  build:\n    cpu: aarch64\n    endian: little\n    family: aarch64\n    system: darwin\n  host:\n    cpu: aarch64\n    endian: little\n    family: aarch64\n    system: darwin\nPython Information:\n  path: /opt/anaconda3/bin/python\n  version: '3.12'\nSIMD Extensions:\n  baseline:\n  - NEON\n  - NEON_FP16\n  - NEON_VFPV4\n  - ASIMD\n  found:\n  - ASIMDHP\n  not found:\n  - ASIMDFHM\n\n",
+  "hardware": {
+    "machine_name": "MacBook Air",
+    "machine_model": "MacBookAir10,1",
+    "chip_type": "Apple M1",
+    "processor_description": "proc 8:4:4:0",
+    "physical_memory": "16 GB",
+    "gpu_model": "Apple M1",
+    "gpu_cores": "7"
+  }
+}

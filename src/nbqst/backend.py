@@ -75,6 +75,31 @@ def asarray(x: Any, xp, *, dtype=None, device=None):
         return xp.asarray(x, **kwargs)
 
 
+def _creation(function, *args, dtype=None, device=None):
+    kwargs = {}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    if device is not None:
+        kwargs["device"] = device
+    try:
+        return function(*args, **kwargs)
+    except TypeError:
+        kwargs.pop("device", None)
+        return function(*args, **kwargs)
+
+
+def zeros(shape, xp, *, dtype=None, device=None):
+    return _creation(xp.zeros, shape, dtype=dtype, device=device)
+
+
+def eye(dimension, xp, *, dtype=None, device=None):
+    return _creation(xp.eye, dimension, dtype=dtype, device=device)
+
+
+def arange(*args, xp, dtype=None, device=None):
+    return _creation(xp.arange, *args, dtype=dtype, device=device)
+
+
 def device_of(array: Any):
     return getattr(array, "device", None)
 
@@ -132,4 +157,3 @@ def kron_all(matrices, xp):
 
 def scalar(value: Any) -> float:
     return float(to_numpy(value))
-

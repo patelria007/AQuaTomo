@@ -63,45 +63,13 @@ def pauli_probabilities(rho, setting: str):
     return probabilities / total
 
 
-def _readout_fidelity_values(value, n_qubits: int, name: str):
-    values = np.asarray(value, dtype=float)
-    if values.ndim == 0:
-        values = np.full(n_qubits, float(values))
-    elif values.ndim == 1 and values.size == 1:
-        values = np.full(n_qubits, float(values[0]))
-    elif values.ndim != 1 or values.size != n_qubits:
-        raise ValueError(f"{name} must be a scalar or contain one value per qubit")
-    if not np.all(np.isfinite(values)) or np.any(values < 0.0) or np.any(values > 1.0):
-        raise ValueError(f"{name} values must be finite and lie between 0 and 1")
-    return values
-
-
-def _apply_readout_fidelity(probabilities, fidelity_0, fidelity_1):
-    """Apply independent per-qubit readout confusion on host probabilities."""
-
-    n_qubits = int(np.asarray(probabilities).size).bit_length() - 1
-    fidelity_0 = _readout_fidelity_values(fidelity_0, n_qubits, "readout_fidelity_0")
-    fidelity_1 = _readout_fidelity_values(fidelity_1, n_qubits, "readout_fidelity_1")
-    if np.all(fidelity_0 == 1.0) and np.all(fidelity_1 == 1.0):
-        return probabilities
-
-    observed = np.asarray(probabilities, dtype=float).reshape((2,) * n_qubits)
-    for axis, (f0, f1) in enumerate(zip(fidelity_0, fidelity_1)):
-        response = np.asarray([[f0, 1.0 - f1], [1.0 - f0, f1]])
-        observed = np.moveaxis(observed, axis, 0)
-        observed = np.tensordot(response, observed, axes=(1, 0))
-        observed = np.moveaxis(observed, 0, axis)
-    return observed.reshape(-1)
-
-
 def simulate_pauli_measurements(
     rho,
     shots_per_setting: int,
     *,
     settings=None,
+    readout_confusion=None,
     rng=None,
-    readout_fidelity_0=None,
-    readout_fidelity_1=None,
 ) -> MeasurementData:
     """Draw multinomial counts and return them on the same backend/device.
 
@@ -109,10 +77,6 @@ def simulate_pauli_measurements(
     RNG is outside the Python Array API Standard.  Born-rule linear algebra is
     performed natively; only the probability vector crosses to the seeded host
     generator, and counts are immediately transferred back.
-
-    ``readout_fidelity_0`` and ``readout_fidelity_1`` are respectively
-    P(measured 0 | true 0) and P(measured 1 | true 1). Each accepts one value
-    for all qubits or one value per qubit.
     """
 
     if shots_per_setting < 1:
@@ -122,27 +86,54 @@ def simulate_pauli_measurements(
     n_qubits = dim.bit_length() - 1
     if rho.shape != (dim, dim) or 2**n_qubits != dim:
         raise ValueError("rho must be a square 2^n by 2^n matrix")
-    if (readout_fidelity_0 is None) != (readout_fidelity_1 is None):
-        raise ValueError("readout_fidelity_0 and readout_fidelity_1 must be provided together")
-    if readout_fidelity_0 is not None:
-        readout_fidelity_0 = _readout_fidelity_values(
-            readout_fidelity_0, n_qubits, "readout_fidelity_0"
-        )
-        readout_fidelity_1 = _readout_fidelity_values(
-            readout_fidelity_1, n_qubits, "readout_fidelity_1"
-        )
     settings = complete_pauli_settings(n_qubits) if settings is None else tuple(settings)
     generator = np.random.default_rng(rng) if not isinstance(rng, np.random.Generator) else rng
     counts = {}
     for setting in settings:
         probs = np.asarray(to_numpy(pauli_probabilities(rho, setting)), dtype=float)
-        if readout_fidelity_0 is not None:
-            probs = _apply_readout_fidelity(probs, readout_fidelity_0, readout_fidelity_1)
         probs = np.maximum(probs, 0.0)
         probs /= probs.sum()
+        if readout_confusion is not None:
+            probs = apply_readout_confusion(probs, n_qubits, readout_confusion)
         sampled = generator.multinomial(shots_per_setting, probs)
         counts[setting] = asarray(sampled, xp, dtype=getattr(xp, "int64", None), device=device_of(rho))
     return MeasurementData(n_qubits=n_qubits, counts=counts, shots_per_setting=shots_per_setting)
+
+
+def apply_readout_confusion(probabilities, n_qubits: int, confusion):
+    """Apply independent or full classical outcome-assignment confusion.
+
+    ``confusion`` can be one 2x2 column-stochastic matrix shared by every
+    qubit, a sequence of per-qubit 2x2 matrices, or a full 2^n by 2^n matrix.
+    Entry ``C[i, j]`` is ``P(observed=i | ideal=j)``.  This acts only on the
+    classical probabilities and is therefore distinct from a quantum channel.
+    """
+
+    if n_qubits < 1:
+        raise ValueError("n_qubits must be positive")
+    vector = np.asarray(probabilities, dtype=float)
+    dim = 2**n_qubits
+    if vector.shape != (dim,):
+        raise ValueError(f"probabilities must have shape ({dim},)")
+    raw = np.asarray(confusion, dtype=float)
+    if raw.shape == (2, 2):
+        matrices = [raw] * n_qubits
+        matrix = matrices[0]
+        for value in matrices[1:]:
+            matrix = np.kron(matrix, value)
+    elif raw.shape == (n_qubits, 2, 2):
+        matrix = raw[0]
+        for value in raw[1:]:
+            matrix = np.kron(matrix, value)
+    elif raw.shape == (dim, dim):
+        matrix = raw
+    else:
+        raise ValueError("confusion must be 2x2, n_qubits x 2 x 2, or 2^n x 2^n")
+    if np.any(matrix < 0.0) or not np.allclose(matrix.sum(axis=0), 1.0, atol=1e-12):
+        raise ValueError("confusion must be nonnegative and column stochastic")
+    observed = matrix @ vector
+    observed = np.maximum(observed, 0.0)
+    return observed / observed.sum()
 
 
 def exact_pauli_measurements(rho, *, shots_per_setting: int = 1_000_000) -> MeasurementData:

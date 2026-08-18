@@ -1,0 +1,2 @@
+n_qubits,shots_per_setting,training_samples,test_samples,hidden_layers,epochs_completed,batch_size,learning_rate,mle_iterations,seed,training_seconds
+2,500,600,60,64x64,239,64,0.001,60,17,0.2193456660006632

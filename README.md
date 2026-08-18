@@ -10,12 +10,16 @@ metrics, persistence, and reproducible benchmarks.
 
 - State ensembles: random product, Haar-random pure, Hilbert-Schmidt/Ginibre
   mixed, rank-controlled mixed, and GHZ states.
-- Noise: global and sequential local depolarizing channels.
+- Noise: global/local depolarizing, amplitude damping, phase damping,
+  asymmetric Pauli, coherent rotation, and asymmetric readout confusion.
 - Measurements: all `3**n` tensor-product Pauli settings with `2**n` outcomes
-  per setting, true multinomial shot counts, and optional independent readout
-  errors.
+  per setting and true multinomial shot counts.
 - Reconstruction: Pauli linear inversion and multinomial maximum likelihood
   with the physical factorization `rho = T^dagger T / trace(T^dagger T)`.
+- Neural reconstruction: a separately trained, feed-forward ReLU/tanh network
+  that maps Pauli frequencies to a Cholesky factor and therefore always returns
+  a positive semidefinite, trace-one density matrix. Training and inference use
+  only the mandatory NumPy dependency; inference follows the input array backend.
 - Training-free denoisers: exact Frobenius projection to the density-matrix
   simplex, low-rank spectral thresholding, and shrinkage toward `I/d`.
 - Metrics: squared Uhlmann fidelity, Hilbert-Schmidt distance, trace distance,
@@ -48,6 +52,7 @@ python -m pip install -e '.[array-api,test]'
 
 ```bash
 python examples/end_to_end.py
+python examples/neural_comparison.py
 
 nbqst generate --qubits 2 --shots 1000 --samples 20 \
   --state-type haar --output data/haar2.npz
@@ -58,19 +63,6 @@ nbqst reconstruct data/haar2.npz --rank 1 \
 nbqst benchmark --qubits 1 2 3 --shots 100 500 2000 \
   --states 10 --output results/benchmark.csv
 ```
-
-To generate data with asymmetric per-qubit readout fidelity:
-
-```bash
-nbqst generate --qubits 2 --shots 1000 --samples 20 \
-  --readout-fidelity-0 0.98 0.97 --readout-fidelity-1 0.96 0.95 \
-  --output data/haar2_readout.npz
-```
-
-Here `readout-fidelity-0` is `P(measured 0 | true 0)` and
-`readout-fidelity-1` is `P(measured 1 | true 1)`. A single value is broadcast
-to every qubit. The confusion model is applied to Born probabilities before
-multinomial sampling; reconstruction remains intentionally uncorrected.
 
 To exercise an available accelerator without changing numerical code:
 
@@ -111,15 +103,30 @@ Attention networks may still be useful for unknown, repeatable device noise,
 but they should be compared to these physics-constrained baselines, evaluated
 out of distribution, and accompanied by uncertainty and calibration checks.
 
+The included neural estimator is not a challenge requirement. It is an
+independent implementation motivated by D. Koutny et al., "Neural-network
+quantum state tomography" (arXiv:2206.06736), and is provided so linear
+inversion, maximum likelihood, and learned reconstruction can be evaluated on
+identical simulated measurements. The example intentionally reports neural
+training cost separately from per-state inference cost.
+
 ## Testing
 
 ```bash
-python -m unittest discover -s tests -v
+python -m pytest -q
+python tools/run_verification_study.py --max-scaling-qubits 7
 ```
 
 The tests cover state physicality, measurement completeness, exact one- and
 two-qubit inversion, negative-eigenvalue removal, MLE monotonicity, noise
 channels, serialization, and a command-line smoke path.
+
+The staged verification study additionally checks the Haar overlap law,
+analytic channel action, exact LI through five qubits, LI/MLE/NN behavior under
+seven noise cases, physicality, and dense scaling.  It writes all figures,
+tables, pass/fail gates, and the execution manifest to
+`results/verification_study/`.  Use `CLUSTER_VERIFICATION.md` for the CPU and
+GPU-cluster rerun procedure and the required hardware/job metadata.
 
 ## Scaling
 
@@ -130,6 +137,12 @@ eigendecomposition costs `O(8**n)` time and `O(4**n)` memory, and MLE repeats
 Born calculations over all settings. Use the dense engines for validation and
 small systems (typically up to roughly 5-8 qubits depending on hardware), then
 switch to structural models or observable-only protocols.
+
+On the documented Apple M1 CPU smoke run, the largest completed dense case was
+seven qubits (2,187 settings); the capped eight-qubit acquisition did not finish
+within 45 seconds.  These are local reproducibility observations, not universal
+limits or accelerator claims.  JAX/CuPy timings must not be reported until the
+cluster manifest and job configuration have been confirmed and captured.
 
 ## Reproducibility and AI disclosure
 

@@ -5,12 +5,11 @@ from pathlib import Path
 import numpy as np
 
 from nbqst.backend import scalar
-from nbqst.cli import main as cli_main
 from nbqst.denoise import depolarizing_shrinkage, low_rank_projection, project_density_matrix
 from nbqst.io import load_measurement_bundle, save_measurement_bundle
 from nbqst.measurements import (
     MeasurementData,
-    _apply_readout_fidelity,
+    apply_readout_confusion,
     complete_pauli_settings,
     exact_pauli_measurements,
     global_pauli_settings,
@@ -18,7 +17,20 @@ from nbqst.measurements import (
     split_measurement_data,
 )
 from nbqst.metrics import fidelity, minimum_eigenvalue, purity
-from nbqst.noise import global_depolarizing_channel, local_depolarizing_channel
+from nbqst.neural import (
+    load_neural_model,
+    neural_state_reconstruction,
+    save_neural_model,
+    train_neural_reconstructor,
+)
+from nbqst.noise import (
+    amplitude_damping_channel,
+    asymmetric_pauli_channel,
+    coherent_rotation_channel,
+    global_depolarizing_channel,
+    local_depolarizing_channel,
+    phase_damping_channel,
+)
 from nbqst.reconstruction import factorized_mle, linear_inversion_pauli
 from nbqst.states import ghz_state, haar_random_pure, random_mixed_state, random_product_state
 
@@ -48,52 +60,6 @@ class MeasurementTests(unittest.TestCase):
         data = simulate_pauli_measurements(rho, 123, rng=4)
         self.assertTrue(data.informationally_complete)
         self.assertTrue(all(int(np.sum(c)) == 123 for c in data.counts.values()))
-
-    def test_perfect_readout_preserves_seeded_counts(self):
-        rho = random_product_state(2, rng=1)
-        ideal = simulate_pauli_measurements(rho, 123, rng=4)
-        perfect = simulate_pauli_measurements(
-            rho, 123, rng=4, readout_fidelity_0=1.0, readout_fidelity_1=1.0
-        )
-        for setting in ideal.settings:
-            self.assertTrue(np.array_equal(ideal.counts[setting], perfect.counts[setting]))
-
-    def test_asymmetric_readout_probabilities(self):
-        self.assertTrue(
-            np.allclose(_apply_readout_fidelity([1.0, 0.0], 0.8, 0.9), [0.8, 0.2])
-        )
-        self.assertTrue(
-            np.allclose(_apply_readout_fidelity([0.0, 1.0], 0.8, 0.9), [0.1, 0.9])
-        )
-
-    def test_readout_big_endian_ordering(self):
-        observed = _apply_readout_fidelity(
-            [0.0, 0.0, 0.0, 1.0], [0.9, 0.8], [0.8, 0.6]
-        )
-        self.assertTrue(np.allclose(observed, [0.08, 0.12, 0.32, 0.48]))
-
-    def test_noisy_readout_conserves_shots(self):
-        rho = random_product_state(2, rng=1)
-        data = simulate_pauli_measurements(
-            rho,
-            123,
-            rng=4,
-            readout_fidelity_0=[0.98, 0.97],
-            readout_fidelity_1=[0.96, 0.95],
-        )
-        self.assertTrue(all(int(np.sum(c)) == 123 for c in data.counts.values()))
-
-    def test_invalid_readout_fidelity_rejected(self):
-        rho = random_product_state(2, rng=1)
-        invalid = (
-            {"readout_fidelity_0": 0.9},
-            {"readout_fidelity_0": [0.9, 0.9], "readout_fidelity_1": [0.8, 0.8, 0.8]},
-            {"readout_fidelity_0": [0.9, 1.1], "readout_fidelity_1": 0.9},
-            {"readout_fidelity_0": np.nan, "readout_fidelity_1": 0.9},
-        )
-        for options in invalid:
-            with self.subTest(options=options), self.assertRaises(ValueError):
-                simulate_pauli_measurements(rho, 10, **options)
 
     def test_train_validation_split_conserves_counts(self):
         rho = random_product_state(2, rng=1)
@@ -141,13 +107,71 @@ class ReconstructionTests(unittest.TestCase):
         self.assertGreaterEqual(scalar(minimum_eigenvalue(estimate)), -1e-12)
         self.assertGreater(scalar(fidelity(truth, estimate)), 0.8)
 
+    def test_neural_cholesky_reconstruction_is_physical_and_serializable(self):
+        rng = np.random.default_rng(31)
+        states = [random_mixed_state(1, rng=rng) for _ in range(40)]
+        datasets = [simulate_pauli_measurements(state, 300, rng=rng) for state in states]
+        model, history = train_neural_reconstructor(
+            states,
+            datasets,
+            hidden_layers=(24,),
+            epochs=100,
+            batch_size=10,
+            validation_fraction=0.25,
+            patience=25,
+            seed=32,
+            return_history=True,
+        )
+        estimate = neural_state_reconstruction(datasets[0], model)
+        self.assertGreaterEqual(scalar(minimum_eigenvalue(estimate)), -1e-12)
+        self.assertAlmostEqual(float(np.trace(estimate).real), 1.0, places=10)
+        self.assertLess(min(row["validation_loss"] for row in history), history[0]["validation_loss"])
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "model.npz"
+            save_neural_model(path, model)
+            restored = load_neural_model(path)
+        self.assertTrue(np.allclose(estimate, neural_state_reconstruction(datasets[0], restored)))
+
 
 class NoiseAndIOTests(unittest.TestCase):
     def test_channels_preserve_density(self):
         rho = ghz_state(2)
-        for noisy in (global_depolarizing_channel(rho, 0.2), local_depolarizing_channel(rho, 0.2)):
+        channels = (
+            global_depolarizing_channel(rho, 0.2),
+            local_depolarizing_channel(rho, 0.2),
+            amplitude_damping_channel(rho, 0.2),
+            phase_damping_channel(rho, 0.2),
+            asymmetric_pauli_channel(rho, p_x=0.03, p_y=0.02, p_z=0.08),
+            coherent_rotation_channel(rho, 0.13, axis="Y"),
+        )
+        for noisy in channels:
             self.assertAlmostEqual(float(np.trace(noisy).real), 1.0, places=10)
             self.assertGreaterEqual(float(np.linalg.eigvalsh(noisy).min()), -1e-12)
+
+    def test_noise_channels_match_analytic_one_qubit_cases(self):
+        excited = np.array([[0.0, 0.0], [0.0, 1.0]], dtype=complex)
+        damped = amplitude_damping_channel(excited, 0.3)
+        self.assertTrue(np.allclose(damped, np.diag([0.3, 0.7])))
+
+        plus = np.full((2, 2), 0.5, dtype=complex)
+        dephased = phase_damping_channel(plus, 0.25)
+        self.assertAlmostEqual(float(dephased[0, 1].real), 0.375, places=12)
+
+        rotated = coherent_rotation_channel(plus, 0.7, axis="Z")
+        self.assertAlmostEqual(float(np.trace(rotated @ rotated).real), 1.0, places=12)
+
+    def test_global_depolarizing_shrinks_bloch_vector(self):
+        plus = np.full((2, 2), 0.5, dtype=complex)
+        noisy = global_depolarizing_channel(plus, 0.2)
+        sigma_x = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex)
+        self.assertAlmostEqual(float(np.trace(noisy @ sigma_x).real), 0.8, places=12)
+
+    def test_readout_confusion_is_classical_and_analytic(self):
+        confusion = np.array([[0.9, 0.2], [0.1, 0.8]])
+        observed = apply_readout_confusion(np.array([1.0, 0.0]), 1, confusion)
+        self.assertTrue(np.allclose(observed, [0.9, 0.1]))
+        observed_two = apply_readout_confusion(np.array([1.0, 0.0, 0.0, 0.0]), 2, confusion)
+        self.assertTrue(np.allclose(observed_two, [0.81, 0.09, 0.09, 0.01]))
 
     def test_bundle_round_trip(self):
         rho = random_product_state(1, rng=4)
@@ -159,33 +183,6 @@ class NoiseAndIOTests(unittest.TestCase):
         self.assertTrue(np.allclose(states[0], rho))
         self.assertEqual(metadata["purpose"], "test")
         self.assertEqual(datasets[0].shots_per_setting, 50)
-
-    def test_cli_readout_metadata_and_paired_options(self):
-        with self.assertRaises(SystemExit):
-            cli_main(["generate", "--readout-fidelity-0", "0.9"])
-
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "readout_bundle.npz"
-            cli_main(
-                [
-                    "generate",
-                    "--qubits",
-                    "1",
-                    "--samples",
-                    "1",
-                    "--shots",
-                    "10",
-                    "--readout-fidelity-0",
-                    "0.9",
-                    "--readout-fidelity-1",
-                    "0.8",
-                    "--output",
-                    str(path),
-                ]
-            )
-            _, _, metadata = load_measurement_bundle(path)
-        self.assertEqual(metadata["readout_fidelity_0"], [0.9])
-        self.assertEqual(metadata["readout_fidelity_1"], [0.8])
 
 
 if __name__ == "__main__":

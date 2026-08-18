@@ -1,0 +1,8 @@
+{
+  "haar_trace_purity": true,
+  "haar_distribution_ks_under_0_05": true,
+  "noise_analytic": true,
+  "exact_li": true,
+  "mle_physical_under_all_noise": true,
+  "neural_physical_under_all_noise": true
+}

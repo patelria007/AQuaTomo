@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .backend import adjoint, array_namespace, complex_dtype, device_of, scalar
+from .backend import adjoint, array_namespace, asarray, complex_dtype, device_of, eye, scalar, zeros
 from .denoise import hermitize, project_density_matrix
 from .measurements import MeasurementData, complete_pauli_settings, pauli_probabilities
 from .operators import measurement_unitary, pauli_labels, pauli_string
@@ -20,7 +20,7 @@ def _parity_signs(pauli_label: str, xp, *, device=None):
     for outcome in range(dim):
         parity = sum((outcome >> (n_qubits - 1 - i)) & 1 for i in active) % 2
         signs.append(1.0 if parity == 0 else -1.0)
-    return xp.asarray(signs, dtype=getattr(xp, "float64", None), device=device)
+    return asarray(signs, xp, dtype=getattr(xp, "float64", None), device=device)
 
 
 def linear_inversion_pauli(data: MeasurementData):
@@ -40,10 +40,10 @@ def linear_inversion_pauli(data: MeasurementData):
     xp = array_namespace(first)
     device = device_of(first)
     dim = 2**data.n_qubits
-    rho = xp.zeros((dim, dim), dtype=complex_dtype(xp), device=device)
+    rho = zeros((dim, dim), xp, dtype=complex_dtype(xp), device=device)
     for label in pauli_labels(data.n_qubits):
         if set(label) == {"I"}:
-            expectation = xp.asarray(1.0, dtype=getattr(xp, "float64", None), device=device)
+            expectation = asarray(1.0, xp, dtype=getattr(xp, "float64", None), device=device)
         else:
             setting = _canonical_setting(label)
             frequencies = data.counts[setting] / xp.sum(data.counts[setting])
@@ -83,8 +83,8 @@ def _initial_factor(rho, xp, rank=None):
 
 def _likelihood_gradient(rho, data, xp, epsilon):
     dim = rho.shape[-1]
-    gradient = xp.zeros((dim, dim), dtype=rho.dtype, device=device_of(rho))
-    total_counts = xp.asarray(0.0, dtype=getattr(xp, "float64", None), device=device_of(rho))
+    gradient = zeros((dim, dim), xp, dtype=rho.dtype, device=device_of(rho))
+    total_counts = asarray(0.0, xp, dtype=getattr(xp, "float64", None), device=device_of(rho))
     for setting, counts in data.counts.items():
         unitary = measurement_unitary(setting, xp)
         probabilities = pauli_probabilities(rho, setting)
@@ -129,8 +129,8 @@ def factorized_mle(
 
     for _ in range(max_iter):
         state_gradient = _likelihood_gradient(rho, data, xp, epsilon)
-        centered = state_gradient - xp.real(xp.trace(state_gradient @ rho)) * xp.eye(
-            dim, dtype=complex_dtype(xp), device=device_of(rho)
+        centered = state_gradient - xp.real(xp.trace(state_gradient @ rho)) * eye(
+            dim, xp, dtype=complex_dtype(xp), device=device_of(rho)
         )
         factor_gradient = 2.0 * factor @ centered
         step = learning_rate
@@ -153,4 +153,3 @@ def factorized_mle(
         if improvement <= tolerance * max(1.0, abs(objective)):
             break
     return (rho, history) if return_history else rho
-

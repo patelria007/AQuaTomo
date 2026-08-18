@@ -2,11 +2,11 @@
 
 ## Technical report and implementation plan for the NBQSS 2026 challenge
 
-Version 1.0 | 17 August 2026
+Version 1.1 | 18 August 2026
 
 ## Abstract
 
-This report presents an end-to-end solution strategy for the 2026 Niels Bohr Quantum Summer School challenge on hardware-agnostic quantum state tomography (QST). It analyzes the supplied attention-based denoising paper and state-generation notebook, identifies correctness and scaling issues, proposes a hierarchy of scalable alternatives to attention, and documents a working Python implementation. The implementation generates product, Haar-random pure, and random mixed states; applies physical noise channels; simulates finite-shot multinomial measurements across all local Pauli settings; reconstructs states by linear inversion and physical factorized maximum likelihood; applies training-free denoisers; computes fidelity and complementary diagnostics; persists data; and benchmarks the same kernels through the Python Array API pattern.
+This report presents an end-to-end solution strategy for the 2026 Niels Bohr Quantum Summer School challenge on hardware-agnostic quantum state tomography (QST). The challenge itself requires linear inversion, Cholesky-parameterized maximum-likelihood estimation (MLE), state and measurement simulation, and backend-portable numerical kernels. The neural-network papers discussed here are not part of the challenge specification: they are external research results that we independently adapt as an additional reconstruction and denoising track. The implementation generates product, Haar-random pure, and random mixed states; applies physical noise channels; simulates finite-shot multinomial measurements across all local Pauli settings; reconstructs states by linear inversion, physical factorized MLE, and a separately trained Cholesky-output neural network; computes fidelity and complementary diagnostics; persists data; and benchmarks numerical kernels through the Python Array API pattern.
 
 The main conclusion is that attention should not be the default denoiser. For dense few-qubit tomography, the strongest first line is a shot-noise-aware likelihood estimator combined with exact positive-semidefinite, trace-one constraints. In undersampled or nearly pure regimes, low-rank factorization or validated spectral shrinkage is more scalable and easier to audit than a general attention network. For genuinely larger systems, the representation must change: matrix-product states/operators and compressed sensing exploit structure, while classical shadows avoid reconstructing a full density matrix when only observables are needed. No algorithm can make generic full-state tomography polynomial in qubit count because the output itself has exponentially many degrees of freedom.
 
@@ -41,7 +41,17 @@ The challenge asks for a modular Python package that evaluates reconstruction qu
 
 The phrase “full stack” is used here in the scientific-computing sense: acquisition simulation, reconstruction, denoising, evaluation, persistence, command-line use, tests, and documentation. A browser application is not needed for the challenge and would distract from the numerical contract.
 
-## 3. What the attention-based paper contributes
+## 3. External neural methods added to the challenge solution
+
+Neither neural-network paper analyzed in this section is part of the NBQSS challenge requirements. They are independent research contributions used to define an optional learned estimator that can be compared with the two required classical methods. Results quoted from either paper are literature results, not results produced by the challenge code. Results produced by this suite are labeled separately in Section 9.5.
+
+### 3.1 Feed-forward neural reconstruction
+
+Koutny et al. formulate QST as direct supervised regression from observed frequencies to either generalized Bloch parameters or the elements of a Cholesky factor. Their network uses ReLU hidden layers and a tanh output; the Cholesky-output variant reconstructs rho = L L^dagger / Tr(L L^dagger), so the reported matrix is physical by construction. They compare linear inversion, semidefinite programming, MLE, and neural estimators under a fixed square-root POVM for dimensions d in {3,5,7,9}. Their reported network has hidden widths (200,180,180,160,160,160,160,100), roughly 200,000 trainable parameters, and is optimized in Keras/TensorFlow with Nadam at learning rate 0.001. Their study used 800,000 training points and 200,000 validation points per dimension, up to 2,000 epochs, early stopping after 200 unimproved epochs, and 1,000 test states; training the dimension-nine model took about 12 hours in their setup. The paper reports competitive error in undersampled regimes and very fast inference, while correctly excluding neural training time from per-state prediction time.
+
+The implementation in this suite adapts that idea rather than claiming to reproduce the paper. It replaces the square-root POVM with the challenge's complete local-Pauli measurements, uses a compact dependency-free multilayer perceptron trained with NumPy Adam, and maps frequencies to d^2 real parameters of a complex lower-triangular factor. The public function `neural_state_reconstruction(data, model)` performs inference separately from linear inversion and MLE. Model training, serialization, and inference are implemented in `neural.py`.
+
+### 3.2 Attention-based neural denoising
 
 Palmieri et al. formulate QST post-processing as supervised matrix denoising. A standard estimator first maps finite-statistics data to a density matrix. The Cholesky factor of this noisy reconstruction is vectorized, passed through convolutional layers and a transformer layer, and mapped to the target Cholesky factor. Reconstructing the output as C C^dagger and normalizing the trace guarantees a physical state. The training objective combines a Cholesky-vector mean-square term with a trace-related regularizer. The paper compares neural post-processing of linear inversion and MLE and also tests out-of-distribution one-axis-twisting states with depolarizing and measurement/calibration noise.
 
@@ -64,7 +74,11 @@ The limitations are equally important:
 - Training cost, hyperparameter selection, and uncertainty are additional experimental resources.
 - Neural improvement over MLE in a finite-sample regime does not imply asymptotic consistency or unbiasedness.
 
-Therefore, the paper motivates a neural option but also suggests the correct baseline architecture: reconstruct physically, represent constraints explicitly, and validate on the target state family and noise process.
+Therefore, the attention paper motivates a second neural option: post-process a conventional reconstruction when repeatable device noise creates structure that is not captured by the likelihood. This is distinct from the direct frequency-to-state feed-forward estimator implemented in the present version. Both are optional extensions and must be compared with linear inversion and MLE on identical held-out measurements.
+
+### 3.3 Role in the present challenge solution
+
+The focused comparison has three primary estimators. Linear inversion is the transparent, fast, unbiased-before-projection baseline but may be nonphysical. Factorized multinomial MLE is the physics-constrained statistical baseline and uses the known shot model. The neural network is a learned direct reconstruction and denoising map: it consumes noisy frequencies and returns a physical state through its Cholesky output. Attention-based post-processing remains a separately motivated future extension; it is not silently substituted for the implemented feed-forward model.
 
 ## 4. Audit of the supplied notebook
 
@@ -130,7 +144,21 @@ rho(T) = T^dagger T / Tr(T^dagger T)
 
 guarantees Hermiticity, PSD, and unit trace. T may be square or r by d. The latter is a Burer-Monteiro/rectangular Cholesky factor imposing rank at most r. The implementation computes the analytic likelihood gradient, uses backtracking, and accepts only non-increasing objective steps. This avoids a general optimizer dependency and works on Array API backends.
 
-### 5.4 Metrics
+### 5.4 Neural reconstruction and learned denoising
+
+The neural estimator takes the concatenated local-Pauli outcome frequencies in a fixed setting order. A multilayer perceptron applies ReLU hidden activations and a tanh output to predict d^2 real Cholesky parameters. These parameters form a complex lower-triangular matrix L, and the returned estimate is
+
+rho_NN = L L^dagger / Tr(L L^dagger).
+
+This output layer guarantees Hermiticity, positive semidefiniteness, and unit trace. The network simultaneously learns the inverse measurement map and a training-distribution-dependent correction for finite-shot noise. The implementation deliberately keeps the entry point separate:
+
+```text
+rho_nn = neural_state_reconstruction(measurement_data, trained_model)
+```
+
+`train_neural_reconstructor` trains the ReLU/tanh model with Adam using only NumPy; `save_neural_model` and `load_neural_model` persist it as a non-pickled NPZ archive. Inference converts learned weights to the measurement array's namespace and device. A model is tied to its qubit count, setting order, state prior, shot/noise distribution, and calibration regime; incompatible dimensions or missing settings are rejected explicitly.
+
+### 5.5 Metrics
 
 No single metric is sufficient. The benchmark records squared Uhlmann fidelity, Hilbert-Schmidt distance, purity, minimum eigenvalue, and runtime. Fidelity is meaningful as a quantum-state similarity only when both inputs are physical. Raw linear inversion is therefore not ranked by fidelity when it has negative eigenvalues. For an experiment, add observable error, entanglement-witness error, calibration curves, bootstrap intervals, and coverage.
 
@@ -146,6 +174,7 @@ No single metric is sufficient. The benchmark records squared Uhlmann fidelity, 
 | Compressed sensing | None | Yes in constrained variants | Structure-dependent | Approximately low-rank states, incomplete Pauli data | Optimization and measurement-design complexity |
 | Matrix-product state/operator | Optional | Representation-dependent | Polynomial in n and bond dimension | 1D, local, limited entanglement | Fails for large bond dimension/long-range structure |
 | Classical shadows | None | Not a full-state estimate | Polynomial for many observables | Observable prediction | Not a replacement for a requested full density matrix |
+| Feed-forward Cholesky network | Supervised | Yes | Dense O(d^2) input/output plus network layers | Repeated measurement design and stable noise distribution | Prior shift and large training-set cost |
 | CNN/residual denoiser | Supervised/self-supervised | Only with output factor | Lower parameter cost than attention | Local matrix/noise structure | Weak global correlation modeling |
 | Score/diffusion prior | Substantial | With parameterization/projection | High inference cost | Rich multimodal prior | Training cost and hallucinated prior bias |
 
@@ -175,7 +204,7 @@ The package separates five layers:
 
 1. Domain layer: states, Pauli operators, channels, and physical constraints.
 2. Acquisition layer: settings, Born probabilities, and multinomial counts.
-3. Inference layer: inversion, projection, shrinkage, and factorized MLE.
+3. Inference layer: inversion, projection, shrinkage, factorized MLE, and optional trained neural reconstruction.
 4. Evaluation layer: metrics, experiment loops, summaries, and timing.
 5. Control plane: random seeds, device transfer for unsupported multinomial RNG, NPZ/CSV I/O, and CLI parsing.
 
@@ -191,6 +220,7 @@ The package layout is:
 | `noise.py` | Global and sequential local depolarization |
 | `measurements.py` | Complete settings, Born probabilities, multinomial data |
 | `reconstruction.py` | Pauli inversion and factorized MLE |
+| `neural.py` | Cholesky-output MLP training, physical inference, and model persistence |
 | `denoise.py` | Physical projection, low-rank and depolarizing shrinkage |
 | `metrics.py` | Fidelity, distances, purity, physicality |
 | `experiment.py` | Reproducible benchmark loops and summaries |
@@ -201,6 +231,8 @@ The package layout is:
 The included benchmark is a validation study, not a publication-scale claim. NumPy experiments use seed 7, n in {1,2}, 30 independent target states for each state class, and 100 or 500 shots per setting. Five estimators are applied to the identical measurement data. Factorized MLE uses at most 60 iterations. A smaller n = 3 scaling smoke test uses three states per condition and at most 30 MLE iterations. A second-backend JAX run uses five states per condition and 30 MLE iterations. Timing is eager wall-clock reconstruction time and is not a synchronized, warmed, JIT-compiled GPU benchmark.
 
 State classes are product pure, Haar-random pure, and full-rank Ginibre/Hilbert-Schmidt mixed. Low-rank projection is intentionally fixed at rank one to expose both its benefit for pure states and its failure under rank mismatch. Depolarizing shrinkage uses alpha = 0.9; it is a baseline, not a claim that 0.9 is optimal. A production experiment should split shots and select alpha by held-out likelihood.
+
+The separate three-method neural validation uses two qubits, 500 shots per local-Pauli setting, seed 17, 600 training states, and 60 disjoint test states balanced cyclically across product-pure, Haar-pure, and full-rank mixed families. The MLP has two hidden layers of 64 neurons, ReLU hidden activations, a tanh Cholesky-parameter output, Adam learning rate 0.001, batch size 64, at most 250 epochs, validation-based early stopping with patience 40, and a 20% validation split. MLE is capped at 60 iterations. This compact run validates integration and comparison logic; it is not a reproduction of Koutny et al.'s 800,000-sample-per-dimension experiment. The script records training and inference times, but this report does not promote those timings as hardware results until the exact machine, node, core/thread, accelerator, and job configuration are verified with the project owner.
 
 ## 9. Results
 
@@ -239,6 +271,30 @@ The three-qubit smoke test shows the same qualitative behavior: linear inversion
 
 The same two-qubit product-state smoke path produced fidelity 0.998599966 on NumPy and 0.998599981 on JAX, an absolute difference of about 1.5e-8. This validates namespace portability for the exercised path. Eager JAX was slower at these tiny dimensions because dispatch and compilation overhead dominate: mean two-qubit linear inversion was about 12.8 ms and MLE about 331 ms in the small run. This is not evidence against accelerators. A fair GPU/JAX study needs warm-up, synchronization, JIT boundaries, larger batches, the same iteration count, and device-resident data.
 
+### 9.5 Focused comparison: Linear Inversion, MLE, and neural reconstruction
+
+The new comparison applies exactly these three estimators to the same 60 held-out two-qubit datasets. The values below are means across the balanced mixture of product-pure, Haar-pure, and full-rank mixed targets at 500 shots per setting.
+
+| Method | Mean HS distance | Mean fidelity | Physical fraction | Interpretation |
+|---|---:|---:|---:|---|
+| Linear Inversion | 0.0804 | Not interpreted | 15% | Fast transparent baseline; usually outside state space |
+| Maximum Likelihood Estimation | 0.0482 | 0.9898 | 100% | Best mean HS result in this validation run |
+| Neural network, Cholesky output | 0.2699 | 0.9216 | 100% | Physical and fast to evaluate, but undertrained relative to the literature protocol |
+
+Raw linear-inversion fidelity averaged 0.9929 numerically, but it is intentionally omitted from interpretation because 85% of its estimates had a negative eigenvalue. The Cholesky-output neural network was physical for every test state, confirming the output construction, but it did not beat MLE or raw linear inversion in HS distance. This negative result is important: a 600-state compact training run cannot be treated as equivalent to the attached paper's 800,000 training states per dimension, and a model trained jointly across pure and mixed families must learn a broader conditional map. The result validates the code path, not neural superiority. A defensible neural claim requires larger training sets, repeated seeds, held-out device-noise conditions, state-family-stratified metrics, and out-of-distribution tests.
+
+The comparison writes the following artifacts:
+
+```text
+neural_comparison.csv
+neural_comparison_summary.csv
+neural_comparison_training_history.csv
+neural_comparison_configuration.csv
+neural_comparison_model.npz
+```
+
+Together they preserve the individual predictions, configuration, learning curve, and trained weights. Runtime numbers remain in the CSV for engineering diagnosis but are excluded from the scientific comparison until hardware and job provenance are confirmed.
+
 ## 10. Interpretation: the recommended denoising stack
 
 The practical stack should be staged rather than centered on one model.
@@ -247,9 +303,10 @@ The practical stack should be staged rather than centered on one model.
 2. Project onto density-matrix space. This is the minimum credible physical baseline and is almost free at small d.
 3. Fit full-rank factorized MLE with the correct likelihood. Compare held-out likelihood and target metrics.
 4. If purity or a spectral gap is expected, fit several ranks and select by held-out likelihood or an information criterion. Do not infer “pure” only from a noisy rank-one-looking estimate.
-5. Fit a shrinkage path rho_alpha = alpha rho_hat + (1-alpha) I/d and select alpha on held-out shots. This can beat unregularized MLE in undersampled HS risk, a phenomenon also analyzed in the supplied paper's Appendix I.
+5. Fit a shrinkage path rho_alpha = alpha rho_hat + (1-alpha) I/d and select alpha on held-out shots. This can beat unregularized MLE in undersampled HS risk, a phenomenon also analyzed in the external attention paper's Appendix I.
 6. Add calibrated device noise to the forward model before learning an opaque correction.
-7. Only then train a residual neural denoiser on measurement splits, multiple devices/noise levels, and out-of-distribution state families. Require it to improve held-out likelihood or downstream observable error, not only training-distribution fidelity.
+7. Train the direct Cholesky-output feed-forward estimator on measurement splits, multiple shot/noise levels, and disjoint validation states. Compare it with linear inversion and MLE on identical inputs.
+8. Only then add an attention or residual post-processing denoiser when repeatable device structure remains. Require it to improve held-out likelihood or downstream observable error, not only training-distribution fidelity.
 
 ## 11. Scaling roadmap
 
@@ -261,6 +318,7 @@ The practical stack should be staged rather than centered on one model.
 - Add batched state/setting evaluation so accelerators receive sufficiently large kernels.
 - Add synchronized, warmed NumPy/JAX/CuPy benchmarks and memory reporting.
 - Add rank selection, early stopping, and optimizer diagnostics.
+- Scale the neural training corpus, repeat seeds, and log state-family/noise-stratified validation curves.
 
 ### Phase B: structured scalable estimators
 
@@ -287,12 +345,13 @@ The practical stack should be staged rather than centered on one model.
 - Rank-one denoising was extremely effective for product/Haar pure states and extremely poor for full-rank mixed states. This sharp contrast is more useful than an average across all state classes.
 - MLE often minimized HS error but did not maximize fidelity for pure targets under the chosen iteration budget. Metric choice and optimizer convergence both matter.
 - The supplied notebook's Pauli-operator expansion was closer to a correct complete measurement design than its three-basis helper: it generated 4^n operator expectations, but the later Gaussian perturbation did not correspond to a realizable set of finite-shot measurement outcomes.
+- The compact 600-state Cholesky-network validation remained physical but underperformed MLE in HS distance. This is consistent with the much larger data requirement in the external feed-forward paper and prevents an unsupported claim that adding a neural network automatically improves tomography.
 
-Given more time, the next priority would be automatic shrinkage/rank selection using the implemented held-out shot split, followed by batched accelerator kernels and uncertainty calibration. A neural comparison should come only after those baselines are established.
+Given more time, the next priority would be automatic shrinkage/rank selection using the implemented held-out shot split, followed by a publication-scale neural study with repeated seeds, batched accelerator kernels, device-noise shifts, and uncertainty calibration.
 
 ## 13. Validation and acceptance criteria
 
-The implementation passes 12 unit tests covering state validity, measurement-setting completeness, multinomial count conservation, train/validation split conservation, exact inversion for one- and two-qubit states, rejection of incomplete data, physical projection, low-rank and shrinkage outputs, monotone MLE likelihood, noise-channel trace/PSD preservation, and NPZ round trips. The end-to-end example confirms negative eigenvalues in raw linear inversion, physical denoised outputs, high-fidelity recovery, and decreasing MLE objective.
+The implementation passes 13 unit tests covering state validity, measurement-setting completeness, multinomial count conservation, train/validation split conservation, exact inversion for one- and two-qubit states, rejection of incomplete data, physical projection, low-rank and shrinkage outputs, monotone MLE likelihood, neural training and physical Cholesky inference, neural-model serialization, noise-channel trace/PSD preservation, and NPZ round trips. The end-to-end examples confirm negative eigenvalues in raw linear inversion, physical MLE and neural outputs, model persistence, and decreasing optimization objectives.
 
 Before using the suite for a scientific claim, require:
 
@@ -313,6 +372,7 @@ Install the package from `nbqst_suite` and run:
 python -m pip install -e .
 python -m unittest discover -s tests -v
 python examples/end_to_end.py
+python examples/neural_comparison.py
 nbqst benchmark --qubits 1 2 --shots 100 500 --states 30 --mle-iterations 60 --output results/final_benchmark.csv
 ```
 
@@ -326,7 +386,7 @@ The included CSV files retain per-sample results and aggregated summaries. Shot 
 
 ## 15. Generative AI disclosure
 
-OpenAI Codex was used to analyze the supplied challenge brief, paper, and notebook; propose the architecture and denoising comparison; derive and implement numerical routines; draft tests and documentation; run benchmarks; and draft this report. Principal AI-assisted code includes the Array API compatibility layer, complete local-Pauli simulator, physical projection, factorized MLE, metrics, CLI, tests, and report builder.
+OpenAI Codex was used to analyze the supplied challenge brief and notebook and the separately provided external neural-network papers; propose the architecture and denoising comparison; derive and implement numerical routines; draft tests and documentation; run benchmarks; and draft this report. Principal AI-assisted code includes the Array API compatibility layer, complete local-Pauli simulator, physical projection, factorized MLE, feed-forward Cholesky neural estimator, metrics, CLI, tests, and report builder.
 
 The contributions were independently checked within the project by exact analytical identities, automated tests, monotonic-likelihood checks, physicality diagnostics, two-backend numerical comparison, repeated seeded benchmarks, and visual inspection of the rendered report. These checks reduce but do not eliminate risk. The scientific interpretation, choice of experimental priors, and any publication claim require human domain review. The temporary JAX validation environment is not part of the delivered package.
 
@@ -342,3 +402,4 @@ The contributions were independently checked within the project by exact analyti
 8. C. Schwemmer et al., “Systematic errors in current quantum state tomography tools,” Physical Review Letters 114, 080403 (2015), https://doi.org/10.1103/PhysRevLett.114.080403.
 9. M.-C. Hsu et al., “Quantum state tomography via nonconvex Riemannian gradient descent,” Physical Review Letters 132, 240804 (2024), https://doi.org/10.1103/PhysRevLett.132.240804.
 10. K. Aditi and S. Becker, “Rigorous maximum-likelihood estimation for quantum states,” Physical Review A 112, 052436 (2025), https://doi.org/10.1103/j5gh-hmtw.
+11. D. Koutny, L. Motka, Z. Hradil, J. Rehacek, and L. L. Sanchez-Soto, “Neural-network quantum state tomography,” arXiv:2206.06736v1 (2022), https://arxiv.org/abs/2206.06736.

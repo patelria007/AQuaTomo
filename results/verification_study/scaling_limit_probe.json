@@ -1,0 +1,11 @@
+{
+  "n_qubits": 8,
+  "shots_per_setting": 200,
+  "settings": 6561,
+  "frequencies": 1679616,
+  "pauli_coefficients": 65536,
+  "wall_time_cap_seconds": 45,
+  "status": "wall_time_cap_reached",
+  "error": "wall-time cap of 45 seconds reached",
+  "total_seconds": 45.005739124986576
+}
