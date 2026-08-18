@@ -65,6 +65,20 @@ The script creates:
 - `end_to_end_verification.png`, the visual summary;
 - `end_to_end_results.json`, the exact and finite-shot machine-readable data.
 
+For a visual comparison across several non-Bell four-qubit states, run:
+
+```powershell
+python verification\4_end_to_end_pipeline\state_matrix_gallery.py
+```
+
+This creates `state_matrix_gallery.png`. Its rows are product pure, Haar pure,
+rank-4 mixed, and GHZ states. The four columns show the generated target, the
+complete observed-frequency matrix for all 81 Pauli settings and 16 outcomes,
+the raw linear-inversion matrix obtained from those measurements, and the
+physical MLE reconstruction. Each row uses one shared magnitude scale across
+all three density matrices, so target-to-estimate agreement can be compared
+directly.
+
 The default seed is fixed, and target-state RNG streams are separated from
 measurement RNG streams. Changing the measurement loop order therefore does
 not silently redefine the generated target states.
