@@ -115,4 +115,4 @@ dependencies:
       - urllib3==2.7.0
       - wcwidth==0.8.2
       - widgetsnbextension==4.0.15
-prefix: /opt/miniconda3/envs/nbqss26
+prefix: /home/rpatel38/.conda/envs/NBQSS26_QST
