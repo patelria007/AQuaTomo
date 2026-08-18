@@ -18,6 +18,18 @@ scripts therefore answer different questions:
 2. Does `simulate_pauli_measurements(...)` generate counts with the correct
    mean, variance, covariance, and shot-noise scaling?
 
+### 1.1 Package functions covered
+
+The table lists only the production functions that are primary verification
+targets. The independent projector oracle and script-local calculations are
+omitted.
+
+| Package function under test | Behavior verified |
+|---|---|
+| `nbqst.measurements.complete_pauli_settings` | For two qubits, returns all $3^2=9$ local-Pauli settings with neither omissions nor duplicates. |
+| `nbqst.measurements.pauli_probabilities` | Matches analytic Born probabilities and an independent tensor-product projector oracle; results are nonnegative, normalized, and consistent with direct Pauli traces. |
+| `nbqst.measurements.simulate_pauli_measurements` | Conserves shots, produces nonnegative counts, reproduces the target multinomial mean and covariance, follows the expected $N^{-1/2}$ RMSE law, and gives the correct concentration behavior for Pauli expectation estimates. |
+
 The code under verification is
 [`src/nbqst/measurements.py`](../../src/nbqst/measurements.py), together with
 the measurement bases defined in

@@ -17,6 +17,17 @@ Ginibre/Wishart samples?” A single state can satisfy every density-matrix
 condition while still having been drawn from the wrong distribution, so both
 levels of verification are necessary.
 
+### 1.1 Package functions covered
+
+The table lists only the production functions that are primary verification
+targets. Script-local diagnostics and analytic reference helpers are omitted.
+
+| Package function under test | Behavior verified |
+|---|---|
+| `nbqst.states.random_product_state` | Returns a physical rank-one state with pure one-qubit reductions. Repeated samples have locally Haar-uniform Bloch vectors, pure $2\mid2$ reductions, and ensemble mean $I/16$. |
+| `nbqst.states.haar_random_pure` | Returns a physical rank-one state with the expected entanglement structure. Repeated samples reproduce the $\operatorname{Beta}(1,15)$ fixed-basis population law, the Haar $2\mid2$ reduced-purity mean $8/17$, and ensemble mean $I/16$. |
+| `nbqst.states.random_mixed_state` | Rank-4 and rank-16 calls return physical states with the requested numerical rank and reproduce the induced Ginibre/Wishart mean-purity formula and ensemble mean $I/16$. |
+
 For four qubits, the Hilbert-space dimension is
 
 $$

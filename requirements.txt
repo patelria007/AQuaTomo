@@ -5,6 +5,7 @@ ipykernel
 ipython
 ipywidgets
 matplotlib
+psutil
 PyQt5
 PyYAML
 qiskit==2.3.1
