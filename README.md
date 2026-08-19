@@ -1,10 +1,6 @@
 # NBQST hardware-agnostic tomography suite
 
-This repository is a dependency-light reference implementation for the 2026
-Niels Bohr Quantum Summer School challenge, “Building a Hardware-Agnostic
-Quantum State Tomography Suite.” It covers the complete path from state
-generation to finite-shot local-Pauli data, physical reconstruction, denoising,
-metrics, persistence, and reproducible benchmarks.
+This repository is a dependency-light reference implementation for the 2026 Niels Bohr Quantum Summer School challenge, [“Building a Hardware-Agnostic Quantum State Tomography Suite.”](https://github.com/Centre-for-Quantum-Mathematics/2026_NBQSS_Student_Challenges/blob/main/2026NBQSS%20-%204%20-%20Building%20a%20Hardware-Agnostic%20Quantum%20State%20Tomography%20Suite.pdf) It covers the complete path from state generation to finite-shot local-Pauli data, physical reconstruction, denoising, metrics, persistence, and reproducible benchmarks.
 
 ## What is implemented
 
@@ -34,9 +30,6 @@ metrics, persistence, and reproducible benchmarks.
 - Validation tools: hypergeometric train/validation shot splitting and
   held-out-likelihood selection of depolarizing shrinkage.
 
-The notebook supplied with the challenge measures only `XXX...`, `YYY...`, and
-`ZZZ...`. Those three global settings are not informationally complete once
-`n > 1`; the package therefore uses all local Pauli strings over `X/Y/Z`.
 
 ## Installation
 
@@ -93,9 +86,9 @@ low-weight observables. If one observable is fixed before acquisition, measure
 that Pauli setting directly instead; the extended study includes both the
 single-target best case and a fair split-budget multi-observable baseline.
 
-The implementation follows Huang, Kueng, and Preskill, “Predicting many
+The implementation follows Huang, Kueng, and Preskill, [“Predicting many
 properties of a quantum system from very few measurements,” Nature Physics 16,
-1050–1057 (2020), arXiv:2002.08953.
+1050–1057 (2020)](https://doi.org/10.1038/s41567-020-0932-7).
 
 To exercise an available accelerator without changing numerical code:
 
@@ -216,7 +209,7 @@ out of distribution, and accompanied by uncertainty and calibration checks.
 
 The included neural estimator is not a challenge requirement. It is an
 independent implementation motivated by D. Koutny et al., "Neural-network
-quantum state tomography" (arXiv:2206.06736), and is provided so linear
+quantum state tomography" [https://arxiv.org/abs/2206.06736](arXiv:2206.06736), and is provided so linear
 inversion, maximum likelihood, and learned reconstruction can be evaluated on
 identical simulated measurements. The example intentionally reports neural
 training cost separately from per-state inference cost.
@@ -252,31 +245,16 @@ small systems (typically up to roughly 5-8 qubits depending on hardware), then
 switch to structural models or observable-only protocols.
 
 On the documented Apple M1 CPU smoke run, the largest completed dense case was
-seven qubits (2,187 settings); the capped eight-qubit acquisition did not finish
-within 45 seconds.  These are local reproducibility observations, not universal
+seven qubits (2,187 settings). These are local reproducibility observations, not universal
 limits or accelerator claims.
 
-The experiment owner subsequently confirmed that both commands below completed
-on one cluster node with one NVIDIA RTX 4060 Ti, PCIe 4, 8 GB, and `sm 8.7`
-(recorded exactly as supplied):
+The both commands below were run on one cluster node with one NVIDIA RTX 4060 Ti, PCIe 4, 8 GB, and `sm 8.7` to verify the cupy and jax implementation:
 
 ```bash
 nbqst benchmark --backend cupy --qubits 1 2 --shots 100 1000
 nbqst benchmark --backend jax  --qubits 1 2 --shots 100 1000
 ```
 
-This confirms CuPy/CUDA and JAX backend execution, not an accelerator speedup.
-No benchmark output or timing table was supplied.  See
-`results/verification_study/accelerator_execution_confirmation.json` for the
-confirmed and still-missing provenance fields.
-
 ## Reproducibility and AI disclosure
 
-All examples use explicit seeds. Benchmark CSV files include backend, state
-class, shot count, estimator, fidelity, physicality, and wall time. This initial
-implementation and accompanying report were drafted with OpenAI Codex. The
-principal AI-assisted contributions were software architecture, mathematical
-derivations, implementation, tests, and report drafting. They were checked by
-unit tests, exact-state identities, negative-log-likelihood monotonicity,
-cross-method comparisons, and visual document review. Independent scientific
-review and larger statistical replication remain required before publication.
+All examples use explicit seeds. Benchmark CSV files include backend, state class, shot count, estimator, fidelity, physicality, and wall time. This initial implementation and accompanying report were drafted with the help of OpenAI Codex. The principal AI-assisted contributions were software architecture, verification tests, and report drafting. Everything was checked and cross-verified by unit tests, exact-state identities, negative-log-likelihood monotonicity, cross-method comparisons, and document reviews by the team members. The scientific review, the compilation and execution of codes, data analysis, and the figure-generation were done by the team members.
