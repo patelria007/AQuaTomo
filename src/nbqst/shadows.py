@@ -190,7 +190,7 @@ class ClassicalShadowProtocol:
         if groups == 1:
             point = xp.mean(values)
             standard_error = (
-                xp.std(values, ddof=1) / xp.sqrt(xp.asarray(sample_count, dtype=values.dtype))
+                xp.std(values, correction=1) / xp.sqrt(xp.asarray(sample_count, dtype=values.dtype))
                 if sample_count > 1
                 else xp.asarray(0.0, dtype=values.dtype)
             )
@@ -200,7 +200,7 @@ class ClassicalShadowProtocol:
             block_means = xp.mean(xp.reshape(values[:usable], (groups, usable // groups)), axis=1)
             point = xp.median(block_means)
             standard_error = (
-                xp.std(block_means, ddof=1) / xp.sqrt(xp.asarray(groups, dtype=block_means.dtype))
+                xp.std(block_means, correction=1) / xp.sqrt(xp.asarray(groups, dtype=block_means.dtype))
                 if groups > 1
                 else xp.asarray(0.0, dtype=block_means.dtype)
             )
