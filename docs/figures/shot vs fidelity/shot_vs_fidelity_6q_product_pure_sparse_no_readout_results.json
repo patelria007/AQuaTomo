@@ -1,0 +1,847 @@
+{
+  "metadata": {
+    "n_qubits": 6,
+    "settings": 729,
+    "shot_definition": "shots per local-Pauli setting",
+    "shot_counts": [
+      100,
+      300,
+      1000,
+      3000,
+      10000
+    ],
+    "trials_per_family": 10,
+    "seed": 20260818,
+    "readout_fidelity_0": null,
+    "readout_fidelity_1": null,
+    "readout_error_mitigation": null,
+    "estimator": "Pauli linear inversion + PSD unit-trace projection",
+    "fidelity": "squared Uhlmann fidelity",
+    "target_fidelity": 0.99,
+    "threshold_rule": "first tested shot count with ensemble mean fidelity >= target"
+  },
+  "thresholds": {
+    "Product": {
+      "shots_per_setting": null,
+      "total_shots": null
+    },
+    "Pure (Haar)": {
+      "shots_per_setting": null,
+      "total_shots": null
+    }
+  },
+  "summary": [
+    {
+      "family": "Product",
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "trials": 10,
+      "mean_fidelity": 0.8496369652149639,
+      "standard_deviation": 0.012325066280122936,
+      "standard_error": 0.003897528175772735,
+      "ci95_lower": 0.8419978099904494,
+      "ci95_upper": 0.8572761204394784
+    },
+    {
+      "family": "Product",
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "trials": 10,
+      "mean_fidelity": 0.9088191528068688,
+      "standard_deviation": 0.0078910639293046,
+      "standard_error": 0.0024953735178600447,
+      "ci95_lower": 0.9039282207118631,
+      "ci95_upper": 0.9137100849018744
+    },
+    {
+      "family": "Product",
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "trials": 10,
+      "mean_fidelity": 0.9515988717239023,
+      "standard_deviation": 0.007977914617258903,
+      "standard_error": 0.002522838116888859,
+      "ci95_lower": 0.9466541090148002,
+      "ci95_upper": 0.9565436344330045
+    },
+    {
+      "family": "Product",
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "trials": 10,
+      "mean_fidelity": 0.9678657765518425,
+      "standard_deviation": 0.005398128489056658,
+      "standard_error": 0.0017070381127662357,
+      "ci95_lower": 0.9645199818508207,
+      "ci95_upper": 0.9712115712528643
+    },
+    {
+      "family": "Product",
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "trials": 10,
+      "mean_fidelity": 0.9847953972243074,
+      "standard_deviation": 0.0031272998981162242,
+      "standard_error": 0.0009889390604459784,
+      "ci95_lower": 0.9828570766658333,
+      "ci95_upper": 0.9867337177827815
+    },
+    {
+      "family": "Pure (Haar)",
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "trials": 10,
+      "mean_fidelity": 0.8614972748581229,
+      "standard_deviation": 0.008111820817278199,
+      "standard_error": 0.002565182975376765,
+      "ci95_lower": 0.8564695162263845,
+      "ci95_upper": 0.8665250334898613
+    },
+    {
+      "family": "Pure (Haar)",
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "trials": 10,
+      "mean_fidelity": 0.9244853299565774,
+      "standard_deviation": 0.006013057303164492,
+      "standard_error": 0.0019014956779109394,
+      "ci95_lower": 0.920758398427872,
+      "ci95_upper": 0.9282122614852828
+    },
+    {
+      "family": "Pure (Haar)",
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "trials": 10,
+      "mean_fidelity": 0.9536148047253503,
+      "standard_deviation": 0.0040176298304837425,
+      "standard_error": 0.0012704861059764812,
+      "ci95_lower": 0.9511246519576364,
+      "ci95_upper": 0.9561049574930642
+    },
+    {
+      "family": "Pure (Haar)",
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "trials": 10,
+      "mean_fidelity": 0.9736134191495184,
+      "standard_deviation": 0.00238213287833599,
+      "standard_error": 0.0007532965584714499,
+      "ci95_lower": 0.9721369578949144,
+      "ci95_upper": 0.9750898804041224
+    },
+    {
+      "family": "Pure (Haar)",
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "trials": 10,
+      "mean_fidelity": 0.9861274191143344,
+      "standard_deviation": 0.0010163463880363142,
+      "standard_error": 0.00032139694778800595,
+      "ci95_lower": 0.9854974810966699,
+      "ci95_upper": 0.986757357131999
+    }
+  ],
+  "records": [
+    {
+      "family": "Product",
+      "trial": 0,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8483588849981611
+    },
+    {
+      "family": "Product",
+      "trial": 0,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9152899723989579
+    },
+    {
+      "family": "Product",
+      "trial": 0,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.943295388812771
+    },
+    {
+      "family": "Product",
+      "trial": 0,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9628518606329777
+    },
+    {
+      "family": "Product",
+      "trial": 0,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9869106527898822
+    },
+    {
+      "family": "Product",
+      "trial": 1,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8488670410800527
+    },
+    {
+      "family": "Product",
+      "trial": 1,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9141659738390157
+    },
+    {
+      "family": "Product",
+      "trial": 1,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.93989045996496
+    },
+    {
+      "family": "Product",
+      "trial": 1,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9705168147106111
+    },
+    {
+      "family": "Product",
+      "trial": 1,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9777912025019488
+    },
+    {
+      "family": "Product",
+      "trial": 2,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8399423042717812
+    },
+    {
+      "family": "Product",
+      "trial": 2,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9253122201884608
+    },
+    {
+      "family": "Product",
+      "trial": 2,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.947178355118441
+    },
+    {
+      "family": "Product",
+      "trial": 2,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9629333382407891
+    },
+    {
+      "family": "Product",
+      "trial": 2,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9840843360191374
+    },
+    {
+      "family": "Product",
+      "trial": 3,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8319958539138849
+    },
+    {
+      "family": "Product",
+      "trial": 3,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9089880913722128
+    },
+    {
+      "family": "Product",
+      "trial": 3,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9691733494118437
+    },
+    {
+      "family": "Product",
+      "trial": 3,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9691404738469662
+    },
+    {
+      "family": "Product",
+      "trial": 3,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9813013189479334
+    },
+    {
+      "family": "Product",
+      "trial": 4,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8419758316956087
+    },
+    {
+      "family": "Product",
+      "trial": 4,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9005159693617428
+    },
+    {
+      "family": "Product",
+      "trial": 4,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9556655751858061
+    },
+    {
+      "family": "Product",
+      "trial": 4,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9719185233960067
+    },
+    {
+      "family": "Product",
+      "trial": 4,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9873287078675137
+    },
+    {
+      "family": "Product",
+      "trial": 5,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8483780516453393
+    },
+    {
+      "family": "Product",
+      "trial": 5,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.900252198675414
+    },
+    {
+      "family": "Product",
+      "trial": 5,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9529073312449783
+    },
+    {
+      "family": "Product",
+      "trial": 5,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9686714538537372
+    },
+    {
+      "family": "Product",
+      "trial": 5,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9857548485583945
+    },
+    {
+      "family": "Product",
+      "trial": 6,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8663635388198099
+    },
+    {
+      "family": "Product",
+      "trial": 6,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9045656837022362
+    },
+    {
+      "family": "Product",
+      "trial": 6,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9482589106174494
+    },
+    {
+      "family": "Product",
+      "trial": 6,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9664658600793322
+    },
+    {
+      "family": "Product",
+      "trial": 6,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9874973616910628
+    },
+    {
+      "family": "Product",
+      "trial": 7,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8413928424173344
+    },
+    {
+      "family": "Product",
+      "trial": 7,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9082686233540513
+    },
+    {
+      "family": "Product",
+      "trial": 7,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9537695527268601
+    },
+    {
+      "family": "Product",
+      "trial": 7,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9579343554041654
+    },
+    {
+      "family": "Product",
+      "trial": 7,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9860128119471486
+    },
+    {
+      "family": "Product",
+      "trial": 8,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8718642424834455
+    },
+    {
+      "family": "Product",
+      "trial": 8,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9012919540185416
+    },
+    {
+      "family": "Product",
+      "trial": 8,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9523116674010849
+    },
+    {
+      "family": "Product",
+      "trial": 8,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9720599803113619
+    },
+    {
+      "family": "Product",
+      "trial": 8,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9841807863630772
+    },
+    {
+      "family": "Product",
+      "trial": 9,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.85723106082422
+    },
+    {
+      "family": "Product",
+      "trial": 9,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9095408411580552
+    },
+    {
+      "family": "Product",
+      "trial": 9,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9535381267548292
+    },
+    {
+      "family": "Product",
+      "trial": 9,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9761651050424782
+    },
+    {
+      "family": "Product",
+      "trial": 9,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9870919455569747
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 0,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8718893292701778
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 0,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9204443155905657
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 0,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9513659307288228
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 0,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9787129950484676
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 0,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9870971064869348
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 1,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8660276659949228
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 1,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9302941187717164
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 1,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9516268256099994
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 1,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9700159120604522
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 1,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9853253284450174
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 2,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8575495282739111
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 2,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9297759185607841
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 2,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9561100345991397
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 2,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9732846556652912
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 2,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9862402482994285
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 3,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8500144459366987
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 3,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9196362360105905
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 3,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.958726656435948
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 3,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9739422259039919
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 3,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9874499071836788
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 4,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8639596664379732
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 4,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9243239370188115
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 4,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9578789239965925
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 4,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9724474497367015
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 4,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9845114846611832
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 5,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8551614953880773
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 5,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9150501471119772
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 5,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9558164745062536
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 5,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9715905479277915
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 5,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9865657399451018
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 6,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8485645239481523
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 6,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9198093786069479
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 6,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.953401987773857
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 6,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9730036859615615
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 6,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.985326697504419
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 7,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8686167928630997
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 7,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9241293462610761
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 7,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9477835290820692
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 7,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9733550019751372
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 7,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9850130846127964
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 8,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8668591336001261
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 8,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9349185220449129
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 8,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9561706381250257
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 8,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9737175443389087
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 8,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.9865936038542759
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 9,
+      "shots_per_setting": 100,
+      "total_shots": 72900,
+      "fidelity": 0.8663301668680892
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 9,
+      "shots_per_setting": 300,
+      "total_shots": 218700,
+      "fidelity": 0.9264713795883901
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 9,
+      "shots_per_setting": 1000,
+      "total_shots": 729000,
+      "fidelity": 0.9472670463957956
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 9,
+      "shots_per_setting": 3000,
+      "total_shots": 2187000,
+      "fidelity": 0.9760641728768802
+    },
+    {
+      "family": "Pure (Haar)",
+      "trial": 9,
+      "shots_per_setting": 10000,
+      "total_shots": 7290000,
+      "fidelity": 0.987150990150508
+    }
+  ]
+}

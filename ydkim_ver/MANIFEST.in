@@ -1,6 +1,0 @@
-include README.md
-include pyproject.toml
-recursive-include src *.md
-recursive-include examples *.ipynb *.md
-recursive-include tests *.py *.md
-recursive-include docs *.md *.json *.png *.pdf
