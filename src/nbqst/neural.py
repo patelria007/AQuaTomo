@@ -164,6 +164,25 @@ def neural_state_reconstruction(data: MeasurementData, model: NeuralTomographyMo
     return cholesky_parameters_to_density(parameters, dimension=model.dimension)
 
 
+def neural_model_to_backend(model: NeuralTomographyModel, xp, *, device=None) -> NeuralTomographyModel:
+    """Place model parameters on ``xp`` once before timed inference.
+
+    Repeatedly copying NumPy weights to a GPU would measure transfer overhead
+    rather than resident neural inference.  This helper makes that boundary
+    explicit while preserving the same validated model structure.
+    """
+
+    model.validate()
+    moved = NeuralTomographyModel(
+        n_qubits=model.n_qubits,
+        settings=model.settings,
+        weights=tuple(asarray(value, xp, dtype=getattr(xp, "float64", None), device=device) for value in model.weights),
+        biases=tuple(asarray(value, xp, dtype=getattr(xp, "float64", None), device=device) for value in model.biases),
+    )
+    moved.validate()
+    return moved
+
+
 def _training_arrays(states: Sequence[object], datasets: Sequence[MeasurementData], settings):
     if len(states) != len(datasets) or len(states) < 2:
         raise ValueError("states and datasets must have the same length of at least two")

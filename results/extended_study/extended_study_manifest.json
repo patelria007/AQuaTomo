@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-08-18T23:15:28Z",
+  "seed": 20260819,
+  "command": "tools/run_extended_study.py --output-dir results/extended_study --hardware-qubits 1 2 3 4 5",
+  "host": {
+    "hostname": "mb0040.local",
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "arm",
+    "logical_cpus_visible": 8,
+    "python": "3.12.9 | packaged by Anaconda, Inc. | (main, Feb  6 2025, 12:55:12) [Clang 14.0.6 ]",
+    "numpy": "1.26.4",
+    "thread_environment": {
+      "OMP_NUM_THREADS": "unset",
+      "MKL_NUM_THREADS": "unset",
+      "OPENBLAS_NUM_THREADS": "unset",
+      "VECLIB_MAXIMUM_THREADS": "unset",
+      "NUMEXPR_NUM_THREADS": "unset"
+    },
+    "scheduler_environment": {
+      "SLURM_JOB_ID": "unset",
+      "SLURM_JOB_NAME": "unset",
+      "SLURM_NNODES": "unset",
+      "SLURM_NTASKS": "unset",
+      "SLURM_CPUS_PER_TASK": "unset",
+      "SLURM_GPUS": "unset",
+      "SLURM_GPUS_ON_NODE": "unset",
+      "CUDA_VISIBLE_DEVICES": "unset"
+    },
+    "hardware": {
+      "machine_name": "MacBook Air",
+      "machine_model": "MacBookAir10,1",
+      "chip_type": "Apple M1",
+      "processor_description": "proc 8:4:4:0",
+      "physical_memory": "16 GB",
+      "gpu_model": "Apple M1",
+      "gpu_cores": "7"
+    }
+  },
+  "backend_availability": {
+    "numpy": {
+      "installed": true,
+      "executed": true,
+      "runtime": {
+        "backend": "numpy",
+        "device_platform": "cpu",
+        "device_name": "arm",
+        "device_id": 0,
+        "device_memory_bytes": "not_available",
+        "compute_capability": "not_applicable",
+        "backend_version": "1.26.4",
+        "synchronization": "host_synchronous"
+      }
+    },
+    "cupy": {
+      "installed": false,
+      "executed": false,
+      "reason": "Python package is unavailable in this environment"
+    },
+    "jax": {
+      "installed": false,
+      "executed": false,
+      "reason": "Python package is unavailable in this environment"
+    }
+  },
+  "configuration": {
+    "output_dir": "results/extended_study",
+    "backends": [
+      "numpy",
+      "cupy",
+      "jax"
+    ],
+    "hardware_qubits": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "hardware_shots": 200,
+    "hardware_states": 2,
+    "hardware_mle_iterations": 8,
+    "hardware_repeats": 3,
+    "shot_qubits": [
+      1,
+      2,
+      3
+    ],
+    "shot_grid": [
+      5,
+      10,
+      20,
+      50,
+      100,
+      300,
+      1000
+    ],
+    "shot_replicates": 8,
+    "shot_mle_iterations": 30,
+    "observable_budgets": [
+      90,
+      180,
+      450,
+      900,
+      1800,
+      4500
+    ],
+    "observable_replicates": 20,
+    "observable_mle_iterations": 30,
+    "neural_model": "results/neural_comparison_model.npz"
+  },
+  "scientific_definitions": {
+    "shot_requirement": "smallest tested grid point whose median fidelity is at least 0.99; a second table records >=50% state success",
+    "qst_copy_cost": "shots_per_setting times 3**n complete local-Pauli settings",
+    "shadow_copy_cost": "one independently randomized local-Pauli measurement per snapshot",
+    "observable_comparison": "root mean squared error at matched requested state-copy budgets",
+    "mle_model": "rank-one factorized multinomial maximum likelihood for pure product and Haar states"
+  },
+  "limitations": [
+    "Only installed and executable backends produce timing records.",
+    "A package-presence check is not evidence of GPU execution; inspect device_platform and device_name.",
+    "Thresholds are discrete-grid empirical estimates, not asymptotic sample-complexity theorems.",
+    "The bundled neural model is fixed, two-qubit, and trained at 500 shots per setting."
+  ]
+}

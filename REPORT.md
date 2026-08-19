@@ -217,7 +217,7 @@ The package layout is:
 | `backend.py` | Namespace discovery, device-aware conversion, adjoint, Kronecker product |
 | `states.py` | Product, Haar, mixed, rank-controlled, and GHZ states |
 | `operators.py` | Pauli strings and measurement unitaries |
-| `noise.py` | Global and sequential local depolarization |
+| `noise.py` | Depolarizing, amplitude/phase damping, biased Pauli, and coherent rotation |
 | `measurements.py` | Complete settings, Born probabilities, multinomial data |
 | `reconstruction.py` | Pauli inversion and factorized MLE |
 | `neural.py` | Cholesky-output MLP training, physical inference, and model persistence |
@@ -230,9 +230,11 @@ The package layout is:
 
 The included benchmark is a validation study, not a publication-scale claim. NumPy experiments use seed 7, n in {1,2}, 30 independent target states for each state class, and 100 or 500 shots per setting. Five estimators are applied to the identical measurement data. Factorized MLE uses at most 60 iterations. A smaller n = 3 scaling smoke test uses three states per condition and at most 30 MLE iterations. A second-backend JAX run uses five states per condition and 30 MLE iterations. Timing is eager wall-clock reconstruction time and is not a synchronized, warmed, JIT-compiled GPU benchmark.
 
+The experiment owner subsequently confirmed two additional cluster executions on one node with one NVIDIA RTX 4060 Ti, PCIe 4, 8 GB, and `sm 8.7` (recorded verbatim as supplied): `nbqst benchmark --backend cupy --qubits 1 2 --shots 100 1000` and the corresponding `--backend jax` command. These runs confirm CuPy/CUDA and JAX backend compatibility for the stated sizes. Their stdout, CSVs, timings, synchronization/warm-up policy, software versions, and remaining job fields were not supplied, so they are not used for a performance comparison.
+
 State classes are product pure, Haar-random pure, and full-rank Ginibre/Hilbert-Schmidt mixed. Low-rank projection is intentionally fixed at rank one to expose both its benefit for pure states and its failure under rank mismatch. Depolarizing shrinkage uses alpha = 0.9; it is a baseline, not a claim that 0.9 is optimal. A production experiment should split shots and select alpha by held-out likelihood.
 
-The separate three-method neural validation uses two qubits, 500 shots per local-Pauli setting, seed 17, 600 training states, and 60 disjoint test states balanced cyclically across product-pure, Haar-pure, and full-rank mixed families. The MLP has two hidden layers of 64 neurons, ReLU hidden activations, a tanh Cholesky-parameter output, Adam learning rate 0.001, batch size 64, at most 250 epochs, validation-based early stopping with patience 40, and a 20% validation split. MLE is capped at 60 iterations. This compact run validates integration and comparison logic; it is not a reproduction of Koutny et al.'s 800,000-sample-per-dimension experiment. The script records training and inference times, but this report does not promote those timings as hardware results until the exact machine, node, core/thread, accelerator, and job configuration are verified with the project owner.
+The separate three-method neural validation uses two qubits, 500 shots per local-Pauli setting, seed 17, 600 training states, and 60 disjoint test states balanced cyclically across product-pure, Haar-pure, and full-rank mixed families. The MLP has two hidden layers of 64 neurons, ReLU hidden activations, a tanh Cholesky-parameter output, Adam learning rate 0.001, batch size 64, at most 250 epochs, validation-based early stopping with patience 40, and a 20% validation split. MLE is capped at 60 iterations. This compact run validates integration and comparison logic; it is not a reproduction of Koutny et al.'s 800,000-sample-per-dimension experiment. The script records training and inference times, but those timings belong to their recorded local run and are not reassigned to the owner-confirmed RTX cluster execution.
 
 ## 9. Results
 
@@ -271,6 +273,8 @@ The three-qubit smoke test shows the same qualitative behavior: linear inversion
 
 The same two-qubit product-state smoke path produced fidelity 0.998599966 on NumPy and 0.998599981 on JAX, an absolute difference of about 1.5e-8. This validates namespace portability for the exercised path. Eager JAX was slower at these tiny dimensions because dispatch and compilation overhead dominate: mean two-qubit linear inversion was about 12.8 ms and MLE about 331 ms in the small run. This is not evidence against accelerators. A fair GPU/JAX study needs warm-up, synchronization, JIT boundaries, larger batches, the same iteration count, and device-resident data.
 
+Separately, the owner-confirmed one-node RTX 4060 Ti run executed both the CuPy/CUDA and JAX benchmark commands for one and two qubits at 100 and 1000 shots. Because no cluster output or timing metadata was supplied, this is reported only as an execution/compatibility result and does not replace or reinterpret the timing values above.
+
 ### 9.5 Focused comparison: Linear Inversion, MLE, and neural reconstruction
 
 The new comparison applies exactly these three estimators to the same 60 held-out two-qubit datasets. The values below are means across the balanced mixture of product-pure, Haar-pure, and full-rank mixed targets at 500 shots per setting.
@@ -293,7 +297,7 @@ neural_comparison_configuration.csv
 neural_comparison_model.npz
 ```
 
-Together they preserve the individual predictions, configuration, learning curve, and trained weights. Runtime numbers remain in the CSV for engineering diagnosis but are excluded from the scientific comparison until hardware and job provenance are confirmed.
+Together they preserve the individual predictions, configuration, learning curve, and trained weights. Runtime numbers remain in the CSV for engineering diagnosis. The separate cluster smoke-run confirmation contains no supplied timing output and therefore supports no accelerator performance claim.
 
 ## 10. Interpretation: the recommended denoising stack
 
@@ -316,7 +320,7 @@ The practical stack should be staged rather than centered on one model.
 - Extend the implemented train/validation shot split to three-way and repeated cross-validation partitions.
 - Add bootstrap confidence intervals and calibration tests.
 - Add batched state/setting evaluation so accelerators receive sufficiently large kernels.
-- Add synchronized, warmed NumPy/JAX/CuPy benchmarks and memory reporting.
+- Run the implemented synchronized, warmed NumPy/JAX/CuPy timing grid and archive its per-backend manifests, detailed samples, summaries, memory fields, and speedup table.
 - Add rank selection, early stopping, and optimizer diagnostics.
 - Scale the neural training corpus, repeat seeds, and log state-family/noise-stratified validation curves.
 
@@ -339,7 +343,7 @@ The practical stack should be staged rather than centered on one model.
 
 ## 12. Failed attempts, surprises, and lessons
 
-- The bundled environment initially lacked JAX, CuPy, and `array-api-compat`. A temporary JAX installation was used for validation rather than adding an accelerator as a mandatory package dependency.
+- The bundled authoring environment initially lacked JAX, CuPy, and `array-api-compat`. The experiment owner later confirmed that both CuPy/CUDA and JAX commands completed on the stated one-node RTX 4060 Ti configuration; accelerator timing output was not supplied.
 - Small JAX jobs were slower than NumPy. This was expected after inspection: the benchmark is eager and dominated by dispatch overhead. Hardware agnosticism enables fair scaling tests; it does not guarantee speedup for tiny matrices.
 - Fidelity alone made raw nonphysical linear inversion appear excellent. Minimum eigenvalue and HS error revealed the problem.
 - Rank-one denoising was extremely effective for product/Haar pure states and extremely poor for full-rank mixed states. This sharp contrast is more useful than an average across all state classes.
@@ -351,7 +355,7 @@ Given more time, the next priority would be automatic shrinkage/rank selection u
 
 ## 13. Validation and acceptance criteria
 
-The implementation passes 13 unit tests covering state validity, measurement-setting completeness, multinomial count conservation, train/validation split conservation, exact inversion for one- and two-qubit states, rejection of incomplete data, physical projection, low-rank and shrinkage outputs, monotone MLE likelihood, neural training and physical Cholesky inference, neural-model serialization, noise-channel trace/PSD preservation, and NPZ round trips. The end-to-end examples confirm negative eigenvalues in raw linear inversion, physical MLE and neural outputs, model persistence, and decreasing optimization objectives.
+The implementation passes 18 unit tests covering state validity, measurement-setting completeness, multinomial count conservation, train/validation split conservation, exact inversion for one- and two-qubit states, rejection of incomplete data, physical projection, low-rank and shrinkage outputs, monotone MLE likelihood, neural training and physical Cholesky inference, neural-model serialization, noise-channel trace/PSD preservation, NPZ round trips, synchronized three-method timing records, summaries, and CLI timing manifests. The end-to-end examples confirm negative eigenvalues in raw linear inversion, physical MLE and neural outputs, model persistence, and decreasing optimization objectives.
 
 Before using the suite for a scientific claim, require:
 
@@ -376,11 +380,14 @@ python examples/neural_comparison.py
 nbqst benchmark --qubits 1 2 --shots 100 500 --states 30 --mle-iterations 60 --output results/final_benchmark.csv
 ```
 
-For a second backend:
+For the owner-confirmed accelerator smoke paths:
 
 ```text
-JAX_ENABLE_X64=1 nbqst benchmark --backend jax --qubits 1 2 --shots 100 500 --states 5 --mle-iterations 30 --output results/jax_benchmark.csv
+nbqst benchmark --backend cupy --qubits 1 2 --shots 100 1000
+nbqst benchmark --backend jax  --qubits 1 2 --shots 100 1000
 ```
+
+Owner-confirmed cluster configuration: one node, one NVIDIA RTX 4060 Ti, PCIe 4, 8 GB, `sm 8.7` as supplied. See `results/verification_study/accelerator_execution_confirmation.json` for the confirmed and missing provenance fields.
 
 The included CSV files retain per-sample results and aggregated summaries. Shot counts are per setting. Seeds, state class, backend, physicality, fidelity, HS distance, purity, and timing are recorded.
 
@@ -388,7 +395,7 @@ The included CSV files retain per-sample results and aggregated summaries. Shot 
 
 OpenAI Codex was used to analyze the supplied challenge brief and notebook and the separately provided external neural-network papers; propose the architecture and denoising comparison; derive and implement numerical routines; draft tests and documentation; run benchmarks; and draft this report. Principal AI-assisted code includes the Array API compatibility layer, complete local-Pauli simulator, physical projection, factorized MLE, feed-forward Cholesky neural estimator, metrics, CLI, tests, and report builder.
 
-The contributions were independently checked within the project by exact analytical identities, automated tests, monotonic-likelihood checks, physicality diagnostics, two-backend numerical comparison, repeated seeded benchmarks, and visual inspection of the rendered report. These checks reduce but do not eliminate risk. The scientific interpretation, choice of experimental priors, and any publication claim require human domain review. The temporary JAX validation environment is not part of the delivered package.
+The contributions were independently checked within the project by exact analytical identities, automated tests, monotonic-likelihood checks, physicality diagnostics, cross-backend execution, repeated seeded benchmarks, and visual inspection of the rendered report. These checks reduce but do not eliminate risk. The scientific interpretation, choice of experimental priors, and any publication claim require human domain review. The cluster execution is owner-confirmed; its unsupplied timing and job/software fields are explicitly separated from the local numerical results.
 
 ## 16. References
 

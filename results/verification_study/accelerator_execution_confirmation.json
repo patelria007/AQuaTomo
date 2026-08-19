@@ -1,0 +1,39 @@
+{
+  "record_type": "owner_confirmed_execution",
+  "confirmation_recorded_on": "2026-08-18",
+  "run_date": "not_supplied",
+  "cluster": {
+    "node_count": 1,
+    "gpu_count": 1,
+    "gpu_model": "NVIDIA RTX 4060 Ti",
+    "gpu_memory": "8 GB",
+    "interconnect": "PCIe 4",
+    "sm": "8.7 (recorded verbatim from owner confirmation)"
+  },
+  "commands": [
+    "nbqst benchmark --backend cupy --qubits 1 2 --shots 100 1000",
+    "nbqst benchmark --backend jax --qubits 1 2 --shots 100 1000"
+  ],
+  "confirmed_scope": {
+    "backends": ["cupy", "jax"],
+    "qubits": [1, 2],
+    "shots_per_setting": [100, 1000],
+    "meaning": "backend execution/compatibility confirmation only"
+  },
+  "benchmark_outputs_supplied": false,
+  "performance_claim_authorized": false,
+  "not_supplied": [
+    "scheduler and job id",
+    "partition or queue",
+    "node CPU model",
+    "allocated CPU cores and threads",
+    "host RAM",
+    "NVIDIA driver version",
+    "CUDA toolkit and runtime versions",
+    "JAX, jaxlib, XLA, and CuPy versions",
+    "precision and dtype policy",
+    "task count and wall-time",
+    "warm-up, repetitions, synchronization, and compilation policy",
+    "stdout, CSV output, and measured timings"
+  ]
+}

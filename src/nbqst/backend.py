@@ -7,6 +7,8 @@ and for deterministic random-number generation and serialization.
 
 from __future__ import annotations
 
+import platform
+import time
 from typing import Any
 
 import numpy as np
@@ -157,3 +159,143 @@ def kron_all(matrices, xp):
 
 def scalar(value: Any) -> float:
     return float(to_numpy(value))
+
+
+def _walk_values(value: Any):
+    if value is None:
+        return
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from _walk_values(item)
+        return
+    if isinstance(value, (tuple, list)):
+        for item in value:
+            yield from _walk_values(item)
+        return
+    yield value
+
+
+def synchronize(value: Any = None, *, xp=None):
+    """Wait for queued backend work and return ``value`` unchanged.
+
+    NumPy is synchronous.  CuPy requires a CUDA-stream barrier, while JAX
+    arrays expose ``block_until_ready``.  Benchmark code should synchronize
+    once immediately before starting a timer and once on the timed result.
+    """
+
+    values = tuple(_walk_values(value))
+    if xp is None:
+        arrays = tuple(item for item in values if hasattr(item, "shape"))
+        xp = array_namespace(*arrays) if arrays else np
+    name = backend_name(xp)
+    if name == "cupy":
+        xp.cuda.get_current_stream().synchronize()
+    elif name == "jax":
+        blocked = False
+        for item in values:
+            block = getattr(item, "block_until_ready", None)
+            if block is not None:
+                block()
+                blocked = True
+        if not blocked:
+            try:
+                import jax
+
+                barrier = getattr(jax, "effects_barrier", None)
+                if barrier is not None:
+                    barrier()
+            except ImportError:
+                pass
+    return value
+
+
+def timed_call(function, *args, xp=None, synchronize_before=None, **kwargs):
+    """Call ``function`` and return ``(result, elapsed_seconds)``.
+
+    The timer uses nanosecond-resolution monotonic time and backend barriers,
+    making the interval meaningful for eager CPU, CUDA/CuPy, and JAX work.
+    Compilation is included unless the caller performs explicit warm-up calls.
+    """
+
+    synchronize(synchronize_before, xp=xp)
+    started = time.perf_counter_ns()
+    result = function(*args, **kwargs)
+    synchronize(result, xp=xp)
+    elapsed = (time.perf_counter_ns() - started) / 1_000_000_000.0
+    return result, elapsed
+
+
+def backend_runtime_metadata(xp) -> dict[str, Any]:
+    """Return flat, CSV/JSON-friendly backend and primary-device metadata."""
+
+    name = backend_name(xp)
+    metadata: dict[str, Any] = {
+        "backend": name,
+        "device_platform": "cpu" if name == "numpy" else "unknown",
+        "device_name": platform.processor() or platform.machine() or "CPU",
+        "device_id": 0,
+        "device_memory_bytes": "not_available",
+        "compute_capability": "not_applicable",
+        "backend_version": np.__version__ if name == "numpy" else "unknown",
+        "synchronization": "host_synchronous" if name == "numpy" else "unknown",
+    }
+    if name == "cupy":
+        device = xp.cuda.Device()
+        properties = xp.cuda.runtime.getDeviceProperties(device.id)
+        device_name = properties.get("name", "CUDA device")
+        if isinstance(device_name, bytes):
+            device_name = device_name.decode(errors="replace")
+        metadata.update(
+            {
+                "device_platform": "cuda",
+                "device_name": str(device_name),
+                "device_id": int(device.id),
+                "device_memory_bytes": int(properties.get("totalGlobalMem", 0)),
+                "compute_capability": f"{properties.get('major', '?')}.{properties.get('minor', '?')}",
+                "backend_version": getattr(xp, "__version__", "unknown"),
+                "cuda_runtime_version": int(xp.cuda.runtime.runtimeGetVersion()),
+                "cuda_driver_version": int(xp.cuda.runtime.driverGetVersion()),
+                "synchronization": "cupy_current_stream_synchronize",
+            }
+        )
+    elif name == "jax":
+        import jax
+
+        devices = jax.devices()
+        device = devices[0] if devices else None
+        memory = "not_available"
+        if device is not None:
+            try:
+                stats = device.memory_stats() or {}
+                memory = stats.get("bytes_limit", stats.get("bytes_reservable_limit", "not_available"))
+            except (AttributeError, RuntimeError):
+                pass
+        metadata.update(
+            {
+                "device_platform": getattr(device, "platform", "unknown"),
+                "device_name": getattr(device, "device_kind", str(device) if device is not None else "unknown"),
+                "device_id": getattr(device, "id", 0),
+                "device_memory_bytes": memory,
+                "compute_capability": str(getattr(device, "compute_capability", "not_available")),
+                "backend_version": getattr(jax, "__version__", "unknown"),
+                "jax_enable_x64": bool(jax.config.jax_enable_x64),
+                "synchronization": "jax_block_until_ready",
+            }
+        )
+        try:
+            try:
+                from jax.extend import backend as jax_backend
+
+                client = jax_backend.get_backend()
+            except (ImportError, AttributeError):
+                client = jax.lib.xla_bridge.get_backend()
+            metadata["accelerator_platform_version"] = getattr(client, "platform_version", "unknown")
+        except (RuntimeError, AttributeError):
+            metadata["accelerator_platform_version"] = "unavailable"
+        try:
+            import jaxlib
+
+            metadata["jaxlib_version"] = getattr(jaxlib, "__version__", "unknown")
+        except ImportError:
+            metadata["jaxlib_version"] = "unknown"
+    return metadata

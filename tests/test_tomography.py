@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import csv
+import json
 from pathlib import Path
 
 import numpy as np
@@ -7,6 +9,8 @@ import numpy as np
 from nbqst.backend import scalar
 from nbqst.denoise import depolarizing_shrinkage, low_rank_projection, project_density_matrix
 from nbqst.io import load_measurement_bundle, save_measurement_bundle
+from nbqst.cli import main as cli_main
+from nbqst.experiment import benchmark, summarize
 from nbqst.measurements import (
     MeasurementData,
     apply_readout_confusion,
@@ -18,6 +22,7 @@ from nbqst.measurements import (
 )
 from nbqst.metrics import fidelity, minimum_eigenvalue, purity
 from nbqst.neural import (
+    NeuralTomographyModel,
     load_neural_model,
     neural_state_reconstruction,
     save_neural_model,
@@ -32,6 +37,14 @@ from nbqst.noise import (
     phase_damping_channel,
 )
 from nbqst.reconstruction import factorized_mle, linear_inversion_pauli
+from nbqst.pipeline import TomographyPipeline
+from nbqst.shadows import (
+    ClassicalShadowData,
+    ClassicalShadowProtocol,
+    PauliObservable,
+    estimate_observable_from_measurements,
+    observable_expectation,
+)
 from nbqst.states import ghz_state, haar_random_pure, random_mixed_state, random_product_state
 
 
@@ -183,6 +196,132 @@ class NoiseAndIOTests(unittest.TestCase):
         self.assertTrue(np.allclose(states[0], rho))
         self.assertEqual(metadata["purpose"], "test")
         self.assertEqual(datasets[0].shots_per_setting, 50)
+
+
+class BenchmarkTimingTests(unittest.TestCase):
+    @staticmethod
+    def one_qubit_model():
+        return NeuralTomographyModel(
+            n_qubits=1,
+            settings=complete_pauli_settings(1),
+            weights=(np.zeros((6, 4)),),
+            biases=(np.zeros(4),),
+        )
+
+    def test_synchronized_three_method_timing_records(self):
+        records = benchmark(
+            qubits=(1,),
+            shots=(25,),
+            state_types=("product",),
+            states_per_case=1,
+            methods=("li", "mle", "nn"),
+            neural_models={1: self.one_qubit_model()},
+            mle_iterations=2,
+            warmup_rounds=0,
+            timing_repeats=2,
+            seed=41,
+        )
+        self.assertEqual(len(records), 6)
+        self.assertEqual(
+            {row["method"] for row in records},
+            {"linear_inversion", "maximum_likelihood", "neural_network"},
+        )
+        for row in records:
+            self.assertGreaterEqual(row["reconstruction_seconds"], 0.0)
+            self.assertGreaterEqual(row["fidelity_seconds"], 0.0)
+            self.assertAlmostEqual(
+                row["method_total_seconds"],
+                row["reconstruction_seconds"] + row["fidelity_seconds"],
+            )
+            self.assertEqual(row["total_shots"], 75)
+            self.assertIn("device_name", row)
+        summary = summarize(records)
+        self.assertEqual(len(summary), 3)
+        self.assertTrue(all(row["timed_samples"] == 2 for row in summary))
+
+    def test_cli_writes_backend_specific_timing_bundle(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            model_path = root / "model_1q.npz"
+            save_neural_model(model_path, self.one_qubit_model())
+            output = root / "timing.csv"
+            cli_main(
+                [
+                    "benchmark",
+                    "--qubits", "1",
+                    "--shots", "20",
+                    "--state-types", "haar",
+                    "--states", "1",
+                    "--methods", "li", "mle", "nn",
+                    "--neural-model", f"1={model_path}",
+                    "--mle-iterations", "2",
+                    "--warmup-rounds", "0",
+                    "--timing-repeats", "1",
+                    "--output", str(output),
+                ]
+            )
+            summary_path = root / "timing_summary.csv"
+            manifest_path = root / "timing_manifest.json"
+            self.assertTrue(summary_path.exists())
+            self.assertTrue(manifest_path.exists())
+            with output.open(newline="", encoding="utf-8") as stream:
+                rows = list(csv.DictReader(stream))
+            self.assertEqual(len(rows), 3)
+            self.assertIn("fidelity_seconds", rows[0])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["record_count"], 3)
+            self.assertTrue(manifest["timing_methodology"]["reconstruction_and_fidelity_timed_separately"])
+
+
+class ClassicalShadowTests(unittest.TestCase):
+    def test_pauli_observable_validation_and_exact_expectation(self):
+        zero = np.diag([1.0, 0.0]).astype(complex)
+        self.assertEqual(PauliObservable("z").label, "Z")
+        self.assertEqual(PauliObservable("IXZ").weight, 2)
+        self.assertAlmostEqual(observable_expectation(zero, "Z"), 1.0)
+        self.assertAlmostEqual(observable_expectation(zero, "X"), 0.0)
+        with self.assertRaises(ValueError):
+            PauliObservable("AB")
+
+    def test_shadow_estimator_formula_and_identity(self):
+        shadow = ClassicalShadowData(
+            n_qubits=1,
+            basis_codes=np.asarray([[0], [1], [2]], dtype=np.int8),
+            outcomes=np.asarray([[0], [0], [0]], dtype=np.int8),
+        )
+        protocol = ClassicalShadowProtocol()
+        self.assertAlmostEqual(protocol.estimate(shadow, "Z").value, 1.0)
+        self.assertAlmostEqual(protocol.estimate(shadow, PauliObservable("I", 2.5)).value, 2.5)
+
+    def test_acquisition_is_unbiased_for_known_z_state(self):
+        zero = np.diag([1.0, 0.0]).astype(complex)
+        protocol = ClassicalShadowProtocol(median_of_means_groups=5)
+        shadow = protocol.acquire(zero, 12_000, rng=51)
+        estimates = {item.observable.label: item for item in protocol.estimate_many(shadow, ("X", "Y", "Z"))}
+        self.assertLess(abs(estimates["X"].value), 0.06)
+        self.assertLess(abs(estimates["Y"].value), 0.06)
+        self.assertLess(abs(estimates["Z"].value - 1.0), 0.06)
+        self.assertEqual(estimates["Z"].samples, 12_000)
+
+    def test_direct_measurement_observable_estimate(self):
+        truth = ghz_state(2)
+        data = exact_pauli_measurements(truth)
+        estimate = estimate_observable_from_measurements(data, "ZZ")
+        self.assertAlmostEqual(estimate.value, 1.0)
+        self.assertEqual(estimate.method, "direct_pauli_setting")
+
+    def test_object_oriented_pipeline(self):
+        pipeline = TomographyPipeline(seed=61, mle_iterations=2)
+        truth, data, results = pipeline.run(
+            n_qubits=1,
+            shots_per_setting=200,
+            state_type="product",
+            methods=("projected_li", "mle"),
+        )
+        self.assertEqual(truth.shape, (2, 2))
+        self.assertEqual(data.n_qubits, 1)
+        self.assertEqual(len(results), 2)
+        self.assertTrue(all(result.is_physical for result in results))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+n_qubits,state_type,criterion,required_shots_per_setting,required_total_copies
+1,product,median_fidelity_at_least_0.99,20,60
+1,product,at_least_half_of_states_hit_0.99,20,60
+1,haar,median_fidelity_at_least_0.99,20,60
+1,haar,at_least_half_of_states_hit_0.99,20,60
+2,product,median_fidelity_at_least_0.99,50,450
+2,product,at_least_half_of_states_hit_0.99,50,450
+2,haar,median_fidelity_at_least_0.99,20,180
+2,haar,at_least_half_of_states_hit_0.99,20,180
+3,product,median_fidelity_at_least_0.99,50,1350
+3,product,at_least_half_of_states_hit_0.99,50,1350
+3,haar,median_fidelity_at_least_0.99,50,1350
+3,haar,at_least_half_of_states_hit_0.99,50,1350

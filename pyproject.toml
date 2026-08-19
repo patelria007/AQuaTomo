@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nbqst"
-version = "0.1.0"
+version = "0.3.0"
 description = "Hardware-agnostic quantum state tomography and denoising toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,10 +13,10 @@ dependencies = ["numpy>=1.24"]
 [project.optional-dependencies]
 array-api = ["array-api-compat>=1.9"]
 test = ["pytest>=7"]
+plot = ["matplotlib>=3.7"]
 
 [project.scripts]
 nbqst = "nbqst.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
